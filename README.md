@@ -1,3 +1,3 @@
-# ComicFront
+# ComicPages
 
-SvelteKit-based comic catalog frontend.
+SvelteKit-based comic catalog full-stack (Cloudflare Pages).
