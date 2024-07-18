@@ -1,6 +1,7 @@
-import pg from 'pg';
-import { Kysely, PostgresDialect, sql } from 'kysely';
+import postgres from 'postgres';
+import { Kysely, sql } from 'kysely';
 import type { ColumnType, Generated, QueryCreator } from 'kysely';
+import { PostgresJSDialect } from 'kysely-postgres-js';
 import { DatabaseError, GenericError } from './model';
 import type {
 	Language,
@@ -82,11 +83,8 @@ import type {
 } from './model';
 import { DATABASE_URL } from '$env/static/private';
 
-pg.types.setTypeParser(pg.types.builtins.INT8, (val) => Number(val)); // Workaround
-const dialect = new PostgresDialect({
-	pool: new pg.Pool({
-		connectionString: DATABASE_URL
-	})
+const dialect = new PostgresJSDialect({
+	postgres: postgres(DATABASE_URL)
 });
 
 const CODE_ERROR_FOREIGN = '23503';
@@ -116,13 +114,13 @@ interface Database {
 const db = new Kysely<Database>({ dialect });
 
 function databaseCatch(e: unknown): void {
-	if (e instanceof pg.DatabaseError) {
+	/* if (e instanceof pg.DatabaseError) {
 		if (e.code == CODE_ERROR_VALIDATION) {
 			throw new GenericError('database validation failed');
 		}
 
 		throw new DatabaseError(e.message, e.code, e.constraint);
-	}
+	} */
 }
 
 interface LanguageTable {
@@ -154,11 +152,11 @@ export async function insertLanguage(v: NewLanguage): Promise<Language> {
 			name: r.name
 		};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			if (e.code == CODE_ERROR_EXISTS && e.constraint == NAME_ERROR_LANGUAGE_KEY) {
 				throw new GenericError('same ietf already exists');
 			}
-		}
+		}  */
 		databaseCatch(e);
 		throw e;
 	}
@@ -278,11 +276,11 @@ export async function updateLanguageByIETF(
 				name: r.name
 			};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			if (e.code == CODE_ERROR_EXISTS && e.constraint == NAME_ERROR_LANGUAGE_KEY) {
 				throw new GenericError('same ietf already exists');
 			}
-		}
+		} */
 		databaseCatch(e);
 		throw e;
 	}
@@ -365,11 +363,11 @@ export async function insertWebsite(v: NewWebsite): Promise<Website> {
 			name: r.name
 		};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			if (e.code == CODE_ERROR_EXISTS && e.constraint == NAME_ERROR_WEBSITE_KEY) {
 				throw new GenericError('same domain already exists');
 			}
-		}
+		}  */
 		databaseCatch(e);
 		throw e;
 	}
@@ -489,11 +487,11 @@ export async function updateWebsiteByDomain(
 				name: r.name
 			};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			if (e.code == CODE_ERROR_EXISTS && e.constraint == NAME_ERROR_WEBSITE_KEY) {
 				throw new GenericError('same domain already exists');
 			}
-		}
+		}  */
 		databaseCatch(e);
 		throw e;
 	}
@@ -576,11 +574,11 @@ export async function insertCategoryType(v: NewCategoryType): Promise<CategoryTy
 			name: r.name
 		};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			if (e.code == CODE_ERROR_EXISTS && e.constraint == NAME_ERROR_CATEGORYTYPE_KEY) {
 				throw new GenericError('same code already exists');
 			}
-		}
+		}  */
 		databaseCatch(e);
 		throw e;
 	}
@@ -700,11 +698,11 @@ export async function updateCategoryTypeByCode(
 				name: r.name
 			};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			if (e.code == CODE_ERROR_EXISTS && e.constraint == NAME_ERROR_CATEGORYTYPE_KEY) {
 				throw new GenericError('same code already exists');
 			}
-		}
+		}  */
 		databaseCatch(e);
 		throw e;
 	}
@@ -813,7 +811,7 @@ export async function insertCategory(v: NewCategory): Promise<Category> {
 			name: r.name
 		};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					if (e.constraint == NAME_ERROR_CATEGORY_FKEY) {
@@ -826,7 +824,7 @@ export async function insertCategory(v: NewCategory): Promise<Category> {
 					}
 					break;
 			}
-		}
+		} */
 		databaseCatch(e);
 		throw e;
 	}
@@ -1061,7 +1059,7 @@ export async function updateCategoryBySID(
 				name: r.name
 			};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					if (e.constraint == NAME_ERROR_CATEGORY_FKEY) {
@@ -1074,7 +1072,7 @@ export async function updateCategoryBySID(
 					}
 					break;
 			}
-		}
+		} */
 		databaseCatch(e);
 		throw e;
 	}
@@ -1251,7 +1249,7 @@ export async function insertCategoryRelation(v: NewCategoryRelation): Promise<Ca
 			};
 		});
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					switch (e.constraint) {
@@ -1272,7 +1270,7 @@ export async function insertCategoryRelation(v: NewCategoryRelation): Promise<Ca
 					}
 					break;
 			}
-		}
+		} */
 		databaseCatch(e);
 		throw e;
 	}
@@ -1611,7 +1609,7 @@ export async function updateCategoryRelationBySID(
 			}
 		});
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					switch (e.constraint) {
@@ -1632,7 +1630,7 @@ export async function updateCategoryRelationBySID(
 					}
 					break;
 			}
-		}
+		} */
 		databaseCatch(e);
 		throw e;
 	}
@@ -1801,11 +1799,11 @@ export async function insertTagType(v: NewTagType): Promise<TagType> {
 			name: r.name
 		};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			if (e.code == CODE_ERROR_EXISTS && e.constraint == NAME_ERROR_TAGTYPE_KEY) {
 				throw new GenericError('same code already exists');
 			}
-		}
+		}  */
 		databaseCatch(e);
 		throw e;
 	}
@@ -1925,11 +1923,11 @@ export async function updateTagTypeByCode(
 				name: r.name
 			};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			if (e.code == CODE_ERROR_EXISTS && e.constraint == NAME_ERROR_TAGTYPE_KEY) {
 				throw new GenericError('same code already exists');
 			}
-		}
+		}  */
 		databaseCatch(e);
 		throw e;
 	}
@@ -2038,7 +2036,7 @@ export async function insertTag(v: NewTag): Promise<Tag> {
 			name: r.name
 		};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					if (e.constraint == NAME_ERROR_TAG_FKEY) {
@@ -2051,7 +2049,7 @@ export async function insertTag(v: NewTag): Promise<Tag> {
 					}
 					break;
 			}
-		}
+		} */
 		databaseCatch(e);
 		throw e;
 	}
@@ -2254,7 +2252,7 @@ export async function updateTagBySID(sid: TagSID, v: SetTag): Promise<Tag | unde
 				name: r.name
 			};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					if (e.constraint == NAME_ERROR_TAG_FKEY) {
@@ -2267,7 +2265,7 @@ export async function updateTagBySID(sid: TagSID, v: SetTag): Promise<Tag | unde
 					}
 					break;
 			}
-		}
+		} */
 		databaseCatch(e);
 		throw e;
 	}
@@ -2422,7 +2420,7 @@ export async function insertComic(v: NewComic): Promise<Comic> {
 			additionals: r.additionals
 		};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					if (e.constraint == NAME_ERROR_COMIC_FKEY) {
@@ -2435,7 +2433,7 @@ export async function insertComic(v: NewComic): Promise<Comic> {
 					}
 					break;
 			}
-		}
+		} */
 		databaseCatch(e);
 		throw e;
 	}
@@ -2701,7 +2699,7 @@ export async function updateComicByCode(code: string, v: SetComic): Promise<Comi
 				additionals: r.additionals
 			};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					if (e.constraint == NAME_ERROR_COMIC_FKEY) {
@@ -2714,7 +2712,7 @@ export async function updateComicByCode(code: string, v: SetComic): Promise<Comi
 					}
 					break;
 			}
-		}
+		} */
 		databaseCatch(e);
 		throw e;
 	}
@@ -2877,7 +2875,7 @@ export async function insertComicTitle(v: NewComicTitle): Promise<ComicTitle> {
 			romanized: r.romanized
 		};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					switch (e.constraint) {
@@ -2896,7 +2894,7 @@ export async function insertComicTitle(v: NewComicTitle): Promise<ComicTitle> {
 					}
 					break;
 			}
-		}
+		} */
 		databaseCatch(e);
 		throw e;
 	}
@@ -3156,7 +3154,7 @@ export async function updateComicTitleBySID(
 				romanized: r.romanized
 			};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					switch (e.constraint) {
@@ -3175,7 +3173,7 @@ export async function updateComicTitleBySID(
 					}
 					break;
 			}
-		}
+		} */
 		databaseCatch(e);
 		throw e;
 	}
@@ -3323,7 +3321,7 @@ export async function insertComicCover(v: NewComicCover): Promise<ComicCover> {
 			priority: r.priority
 		};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					switch (e.constraint) {
@@ -3342,7 +3340,7 @@ export async function insertComicCover(v: NewComicCover): Promise<ComicCover> {
 					}
 					break;
 			}
-		}
+		} */
 		databaseCatch(e);
 		throw e;
 	}
@@ -3592,7 +3590,7 @@ export async function updateComicCoverBySID(
 				priority: r.priority
 			};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					switch (e.constraint) {
@@ -3611,7 +3609,7 @@ export async function updateComicCoverBySID(
 					}
 					break;
 			}
-		}
+		} */
 		databaseCatch(e);
 		throw e;
 	}
@@ -3763,7 +3761,7 @@ export async function insertComicSynopsis(v: NewComicSynopsis): Promise<ComicSyn
 			romanized: r.romanized
 		};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					switch (e.constraint) {
@@ -3782,7 +3780,7 @@ export async function insertComicSynopsis(v: NewComicSynopsis): Promise<ComicSyn
 					}
 					break;
 			}
-		}
+		} */
 		databaseCatch(e);
 		throw e;
 	}
@@ -4044,7 +4042,7 @@ export async function updateComicSynopsisBySID(
 				romanized: r.romanized
 			};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					switch (e.constraint) {
@@ -4063,7 +4061,7 @@ export async function updateComicSynopsisBySID(
 					}
 					break;
 			}
-		}
+		} */
 		databaseCatch(e);
 		throw e;
 	}
@@ -4211,7 +4209,7 @@ export async function insertComicExternal(v: NewComicExternal): Promise<ComicExt
 			official: r.official
 		};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					switch (e.constraint) {
@@ -4230,7 +4228,7 @@ export async function insertComicExternal(v: NewComicExternal): Promise<ComicExt
 					}
 					break;
 			}
-		}
+		} */
 		databaseCatch(e);
 		throw e;
 	}
@@ -4483,7 +4481,7 @@ export async function updateComicExternalBySID(
 				official: r.official
 			};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					switch (e.constraint) {
@@ -4502,7 +4500,7 @@ export async function updateComicExternalBySID(
 					}
 					break;
 			}
-		}
+		} */
 		databaseCatch(e);
 		throw e;
 	}
@@ -4647,7 +4645,7 @@ export async function insertComicCategory(v: NewComicCategory): Promise<ComicCat
 			categoryCode: r.category_code
 		};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					switch (e.constraint) {
@@ -4663,7 +4661,7 @@ export async function insertComicCategory(v: NewComicCategory): Promise<ComicCat
 					}
 					break;
 			}
-		}
+		}  */
 		databaseCatch(e);
 		throw e;
 	}
@@ -4951,7 +4949,7 @@ export async function updateComicCategoryBySID(
 				categoryCode: r.category_code
 			};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					switch (e.constraint) {
@@ -4967,7 +4965,7 @@ export async function updateComicCategoryBySID(
 					}
 					break;
 			}
-		}
+		}  */
 		databaseCatch(e);
 		throw e;
 	}
@@ -5154,7 +5152,7 @@ export async function insertComicTag(v: NewComicTag): Promise<ComicTag> {
 			tagCode: r.tag_code
 		};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					switch (e.constraint) {
@@ -5170,7 +5168,7 @@ export async function insertComicTag(v: NewComicTag): Promise<ComicTag> {
 					}
 					break;
 			}
-		}
+		}  */
 		databaseCatch(e);
 		throw e;
 	}
@@ -5456,7 +5454,7 @@ export async function updateComicTagBySID(
 				tagCode: r.tag_code
 			};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					switch (e.constraint) {
@@ -5472,7 +5470,7 @@ export async function updateComicTagBySID(
 					}
 					break;
 			}
-		}
+		}  */
 		databaseCatch(e);
 		throw e;
 	}
@@ -5619,11 +5617,11 @@ export async function insertComicRelationType(v: NewComicRelationType): Promise<
 			name: r.name
 		};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			if (e.code == CODE_ERROR_EXISTS && e.constraint == NAME_ERROR_COMICRELATIONTYPE_KEY) {
 				throw new GenericError('same code already exists');
 			}
-		}
+		}  */
 		databaseCatch(e);
 		throw e;
 	}
@@ -5747,11 +5745,11 @@ export async function updateComicRelationTypeByCode(
 				name: r.name
 			};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			if (e.code == CODE_ERROR_EXISTS && e.constraint == NAME_ERROR_COMICRELATIONTYPE_KEY) {
 				throw new GenericError('same code already exists');
 			}
-		}
+		}  */
 		databaseCatch(e);
 		throw e;
 	}
@@ -5896,7 +5894,7 @@ export async function insertComicRelation(v: NewComicRelation): Promise<ComicRel
 			};
 		});
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					switch (e.constraint) {
@@ -5919,7 +5917,7 @@ export async function insertComicRelation(v: NewComicRelation): Promise<ComicRel
 					}
 					break;
 			}
-		}
+		}  */
 		databaseCatch(e);
 		throw e;
 	}
@@ -6229,7 +6227,7 @@ export async function updateComicRelationBySID(
 			}
 		});
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					switch (e.constraint) {
@@ -6252,7 +6250,7 @@ export async function updateComicRelationBySID(
 					}
 					break;
 			}
-		}
+		}  */
 		databaseCatch(e);
 		throw e;
 	}
@@ -6416,7 +6414,7 @@ export async function insertComicChapter(v: NewComicChapter): Promise<ComicChapt
 			releasedAt: r.released_at
 		};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					if (e.constraint == NAME_ERROR_COMICCHAPTER_FKEY) {
@@ -6429,7 +6427,7 @@ export async function insertComicChapter(v: NewComicChapter): Promise<ComicChapt
 					}
 					break;
 			}
-		}
+		}  */
 		databaseCatch(e);
 		throw e;
 	}
@@ -6619,7 +6617,7 @@ export async function updateComicChapterBySID(
 				releasedAt: r.released_at
 			};
 	} catch (e) {
-		if (e instanceof pg.DatabaseError) {
+		/* if (e instanceof pg.DatabaseError) {
 			switch (e.code) {
 				case CODE_ERROR_FOREIGN:
 					if (e.constraint == NAME_ERROR_COMICCHAPTER_FKEY) {
@@ -6632,7 +6630,7 @@ export async function updateComicChapterBySID(
 					}
 					break;
 			}
-		}
+		}  */
 		databaseCatch(e);
 		throw e;
 	}

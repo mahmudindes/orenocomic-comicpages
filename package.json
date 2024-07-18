@@ -20,8 +20,9 @@
 	"dependencies": {
 		"jose": "^5.6.3",
 		"kysely": "^0.27.3",
+		"kysely-postgres-js": "^2.0.0",
 		"openapi-fetch": "^0.8.2",
-		"pg": "^8.11.5"
+		"postgres": "^3.4.4"
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.28.1",
@@ -29,7 +30,6 @@
 		"@sveltejs/kit": "^2.0.0",
 		"@sveltejs/vite-plugin-svelte": "^3.0.0",
 		"@types/eslint": "8.56.0",
-		"@types/pg": "^8.11.5",
 		"@typescript-eslint/eslint-plugin": "^6.0.0",
 		"@typescript-eslint/parser": "^6.0.0",
 		"autoprefixer": "^10.4.16",
@@ -48,11 +48,5 @@
 		"vite": "^5.0.3",
 		"vitest": "^1.0.0"
 	},
-	"type": "module",
-	"browser": {
-		"fs": false,
-		"dns": false,
-		"net": false,
-		"tls": false
-	}
+	"type": "module"
 }
