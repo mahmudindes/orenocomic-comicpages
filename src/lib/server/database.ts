@@ -83,10 +83,6 @@ import type {
 } from './model';
 import { DATABASE_URL } from '$env/static/private';
 
-const dialect = new PostgresJSDialect({
-	postgres: postgres(DATABASE_URL)
-});
-
 const CODE_ERROR_FOREIGN = '23503';
 const CODE_ERROR_EXISTS = '23505';
 const CODE_ERROR_VALIDATION = '23514';
@@ -112,7 +108,11 @@ interface Database {
 }
 
 const db = () => {
-	return new Kysely<Database>({ dialect });
+	return new Kysely<Database>({
+		dialect: new PostgresJSDialect({
+			postgres: postgres(DATABASE_URL)
+		})
+	});
 };
 
 function databaseCatch(e: unknown): void {
