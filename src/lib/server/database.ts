@@ -107,13 +107,23 @@ interface Database {
 	'donoengine.comic_chapter': ComicChapterTable;
 }
 
-const database = () => {
+export const database = () => {
 	return new Kysely<Database>({
 		dialect: new PostgresJSDialect({
-			postgres: postgres(DATABASE_URL)
+			postgres: postgres(DATABASE_URL, {
+				types: {
+					bigint: {
+						to: 20,
+						from: [20],
+						serialize: (x: any) => '' + x,
+						parse: (x: any) => +x
+					}
+				}
+			})
 		})
 	});
 };
+export type DB = Kysely<Database>;
 
 function databaseCatch(e: unknown): void {
 	/* if (e instanceof pg.DatabaseError) {
@@ -135,9 +145,8 @@ interface LanguageTable {
 
 const NAME_ERROR_LANGUAGE_KEY = 'language_ietf_key';
 
-export async function insertLanguage(v: NewLanguage): Promise<Language> {
+export async function insertLanguage(db: DB, v: NewLanguage): Promise<Language> {
 	try {
-		const db = database();
 		const r = await db
 			.insertInto('donoengine.language')
 			.values({
@@ -146,7 +155,6 @@ export async function insertLanguage(v: NewLanguage): Promise<Language> {
 			})
 			.returningAll()
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return {
 			id: r.id,
@@ -166,9 +174,11 @@ export async function insertLanguage(v: NewLanguage): Promise<Language> {
 	}
 }
 
-export async function selectLanguage(criteria: ParLanguage): Promise<Language[]> {
+export async function selectLanguage(
+	db: Kysely<Database>,
+	criteria: ParLanguage
+): Promise<Language[]> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.language');
 
 		if (criteria.orderBys)
@@ -215,7 +225,6 @@ export async function selectLanguage(criteria: ParLanguage): Promise<Language[]>
 		if (criteria.page) query = query.offset((criteria.limit ?? 0) * (criteria.page - 1));
 
 		const r = await query.selectAll().execute();
-		await db.destroy();
 
 		return r.map((r) => {
 			return {
@@ -232,15 +241,13 @@ export async function selectLanguage(criteria: ParLanguage): Promise<Language[]>
 	}
 }
 
-export async function selectLanguageByIETF(ietf: string): Promise<Language | undefined> {
+export async function selectLanguageByIETF(db: DB, ietf: string): Promise<Language | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.selectFrom('donoengine.language')
 			.where('ietf', '=', ietf)
 			.selectAll()
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -257,11 +264,11 @@ export async function selectLanguageByIETF(ietf: string): Promise<Language | und
 }
 
 export async function updateLanguageByIETF(
+	db: DB,
 	ietf: string,
 	v: SetLanguage
 ): Promise<Language | undefined> {
 	try {
-		const db = database();
 		let query = db
 			.updateTable('donoengine.language')
 			.set({
@@ -275,7 +282,6 @@ export async function updateLanguageByIETF(
 		if (v.name) query = query.where('name', '!=', v.name);
 
 		const r = await query.returningAll().executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -296,14 +302,12 @@ export async function updateLanguageByIETF(
 	}
 }
 
-export async function deleteLanguageByIETF(ietf: string): Promise<boolean> {
+export async function deleteLanguageByIETF(db: DB, ietf: string): Promise<boolean> {
 	try {
-		const db = database();
 		const r = await db
 			.deleteFrom('donoengine.language')
 			.where('ietf', '=', ietf)
 			.executeTakeFirst();
-		await db.destroy();
 
 		return r.numDeletedRows > 0;
 	} catch (e) {
@@ -312,9 +316,8 @@ export async function deleteLanguageByIETF(ietf: string): Promise<boolean> {
 	}
 }
 
-export async function existsLanguageByIETF(ietf: string): Promise<boolean> {
+export async function existsLanguageByIETF(db: DB, ietf: string): Promise<boolean> {
 	try {
-		const db = database();
 		const { exists } = await db
 			.selectNoFrom(({ exists, selectFrom }) =>
 				exists(
@@ -324,7 +327,6 @@ export async function existsLanguageByIETF(ietf: string): Promise<boolean> {
 				).as('exists')
 			)
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return Boolean(exists);
 	} catch (e) {
@@ -333,15 +335,13 @@ export async function existsLanguageByIETF(ietf: string): Promise<boolean> {
 	}
 }
 
-export async function countLanguage(criteria: ParLanguage): Promise<number> {
+export async function countLanguage(db: DB, criteria: ParLanguage): Promise<number> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.language');
 
 		const { count } = await query
 			.select((eb) => eb.fn.countAll<number>().as('count'))
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return count;
 	} catch (e) {
@@ -360,9 +360,8 @@ interface WebsiteTable {
 
 const NAME_ERROR_WEBSITE_KEY = 'website_domain_key';
 
-export async function insertWebsite(v: NewWebsite): Promise<Website> {
+export async function insertWebsite(db: DB, v: NewWebsite): Promise<Website> {
 	try {
-		const db = database();
 		const r = await db
 			.insertInto('donoengine.website')
 			.values({
@@ -371,7 +370,6 @@ export async function insertWebsite(v: NewWebsite): Promise<Website> {
 			})
 			.returningAll()
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return {
 			id: r.id,
@@ -391,9 +389,8 @@ export async function insertWebsite(v: NewWebsite): Promise<Website> {
 	}
 }
 
-export async function selectWebsite(criteria: ParWebsite): Promise<Website[]> {
+export async function selectWebsite(db: DB, criteria: ParWebsite): Promise<Website[]> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.website');
 
 		if (criteria.orderBys)
@@ -440,7 +437,6 @@ export async function selectWebsite(criteria: ParWebsite): Promise<Website[]> {
 		if (criteria.page) query = query.offset((criteria.limit ?? 0) * (criteria.page - 1));
 
 		const r = await query.selectAll().execute();
-		await db.destroy();
 
 		return r.map((r) => {
 			return {
@@ -457,15 +453,13 @@ export async function selectWebsite(criteria: ParWebsite): Promise<Website[]> {
 	}
 }
 
-export async function selectWebsiteByDomain(domain: string): Promise<Website | undefined> {
+export async function selectWebsiteByDomain(db: DB, domain: string): Promise<Website | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.selectFrom('donoengine.website')
 			.where('domain', '=', domain)
 			.selectAll()
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -482,11 +476,11 @@ export async function selectWebsiteByDomain(domain: string): Promise<Website | u
 }
 
 export async function updateWebsiteByDomain(
+	db: DB,
 	domain: string,
 	v: SetWebsite
 ): Promise<Website | undefined> {
 	try {
-		const db = database();
 		let query = db
 			.updateTable('donoengine.website')
 			.set({
@@ -500,7 +494,6 @@ export async function updateWebsiteByDomain(
 		if (v.name) query = query.where('name', '!=', v.name);
 
 		const r = await query.returningAll().executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -521,14 +514,12 @@ export async function updateWebsiteByDomain(
 	}
 }
 
-export async function deleteWebsiteByDomain(domain: string): Promise<boolean> {
+export async function deleteWebsiteByDomain(db: DB, domain: string): Promise<boolean> {
 	try {
-		const db = database();
 		const r = await db
 			.deleteFrom('donoengine.website')
 			.where('domain', '=', domain)
 			.executeTakeFirst();
-		await db.destroy();
 
 		return r.numDeletedRows > 0;
 	} catch (e) {
@@ -537,9 +528,8 @@ export async function deleteWebsiteByDomain(domain: string): Promise<boolean> {
 	}
 }
 
-export async function existsWebsiteByDomain(domain: string): Promise<boolean> {
+export async function existsWebsiteByDomain(db: DB, domain: string): Promise<boolean> {
 	try {
-		const db = database();
 		const { exists } = await db
 			.selectNoFrom(({ exists, selectFrom }) =>
 				exists(
@@ -549,7 +539,6 @@ export async function existsWebsiteByDomain(domain: string): Promise<boolean> {
 				).as('exists')
 			)
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return Boolean(exists);
 	} catch (e) {
@@ -558,15 +547,13 @@ export async function existsWebsiteByDomain(domain: string): Promise<boolean> {
 	}
 }
 
-export async function countWebsite(criteria: ParWebsite): Promise<number> {
+export async function countWebsite(db: DB, criteria: ParWebsite): Promise<number> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.website');
 
 		const { count } = await query
 			.select((eb) => eb.fn.countAll<number>().as('count'))
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return count;
 	} catch (e) {
@@ -585,9 +572,8 @@ interface CategoryTypeTable {
 
 const NAME_ERROR_CATEGORYTYPE_KEY = 'category_type_code_key';
 
-export async function insertCategoryType(v: NewCategoryType): Promise<CategoryType> {
+export async function insertCategoryType(db: DB, v: NewCategoryType): Promise<CategoryType> {
 	try {
-		const db = database();
 		const r = await db
 			.insertInto('donoengine.category_type')
 			.values({
@@ -596,7 +582,6 @@ export async function insertCategoryType(v: NewCategoryType): Promise<CategoryTy
 			})
 			.returningAll()
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return {
 			id: r.id,
@@ -616,9 +601,11 @@ export async function insertCategoryType(v: NewCategoryType): Promise<CategoryTy
 	}
 }
 
-export async function selectCategoryType(criteria: ParCategoryType): Promise<CategoryType[]> {
+export async function selectCategoryType(
+	db: DB,
+	criteria: ParCategoryType
+): Promise<CategoryType[]> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.category_type');
 
 		if (criteria.orderBys)
@@ -665,7 +652,6 @@ export async function selectCategoryType(criteria: ParCategoryType): Promise<Cat
 		if (criteria.page) query = query.offset((criteria.limit ?? 0) * (criteria.page - 1));
 
 		const r = await query.selectAll().execute();
-		await db.destroy();
 
 		return r.map((r) => {
 			return {
@@ -682,15 +668,16 @@ export async function selectCategoryType(criteria: ParCategoryType): Promise<Cat
 	}
 }
 
-export async function selectCategoryTypeByCode(code: string): Promise<CategoryType | undefined> {
+export async function selectCategoryTypeByCode(
+	db: DB,
+	code: string
+): Promise<CategoryType | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.selectFrom('donoengine.category_type')
 			.where('code', '=', code)
 			.selectAll()
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -707,11 +694,11 @@ export async function selectCategoryTypeByCode(code: string): Promise<CategoryTy
 }
 
 export async function updateCategoryTypeByCode(
+	db: DB,
 	code: string,
 	v: SetCategoryType
 ): Promise<CategoryType | undefined> {
 	try {
-		const db = database();
 		let query = db
 			.updateTable('donoengine.category_type')
 			.set({
@@ -725,7 +712,6 @@ export async function updateCategoryTypeByCode(
 		if (v.name) query = query.where('name', '!=', v.name);
 
 		const r = await query.returningAll().executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -746,14 +732,12 @@ export async function updateCategoryTypeByCode(
 	}
 }
 
-export async function deleteCategoryTypeByCode(code: string): Promise<boolean> {
+export async function deleteCategoryTypeByCode(db: DB, code: string): Promise<boolean> {
 	try {
-		const db = database();
 		const r = await db
 			.deleteFrom('donoengine.category_type')
 			.where('code', '=', code)
 			.executeTakeFirst();
-		await db.destroy();
 
 		return r.numDeletedRows > 0;
 	} catch (e) {
@@ -762,9 +746,8 @@ export async function deleteCategoryTypeByCode(code: string): Promise<boolean> {
 	}
 }
 
-export async function existsCategoryTypeByCode(code: string): Promise<boolean> {
+export async function existsCategoryTypeByCode(db: DB, code: string): Promise<boolean> {
 	try {
-		const db = database();
 		const { exists } = await db
 			.selectNoFrom(({ exists, selectFrom }) =>
 				exists(
@@ -774,7 +757,6 @@ export async function existsCategoryTypeByCode(code: string): Promise<boolean> {
 				).as('exists')
 			)
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return Boolean(exists);
 	} catch (e) {
@@ -783,15 +765,13 @@ export async function existsCategoryTypeByCode(code: string): Promise<boolean> {
 	}
 }
 
-export async function countCategoryType(criteria: ParCategoryType): Promise<number> {
+export async function countCategoryType(db: DB, criteria: ParCategoryType): Promise<number> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.category_type');
 
 		const { count } = await query
 			.select((eb) => eb.fn.countAll<number>().as('count'))
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return count;
 	} catch (e) {
@@ -812,9 +792,8 @@ interface CategoryTable {
 const NAME_ERROR_CATEGORY_KEY = 'category_type_id_code_key';
 const NAME_ERROR_CATEGORY_FKEY = 'category_type_id_fkey';
 
-export async function insertCategory(v: NewCategory): Promise<Category> {
+export async function insertCategory(db: DB, v: NewCategory): Promise<Category> {
 	try {
-		const db = database();
 		const r = await db
 			.with('a', (qc) =>
 				qc
@@ -845,7 +824,6 @@ export async function insertCategory(v: NewCategory): Promise<Category> {
 				'b.code as type_code'
 			])
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return {
 			id: r.id,
@@ -876,9 +854,8 @@ export async function insertCategory(v: NewCategory): Promise<Category> {
 	}
 }
 
-export async function selectCategory(criteria: ParCategory): Promise<Category[]> {
+export async function selectCategory(db: DB, criteria: ParCategory): Promise<Category[]> {
 	try {
-		const db = database();
 		let query = db
 			.selectFrom('donoengine.category as a')
 			.innerJoin('donoengine.category_type as b', 'b.id', 'a.type_id')
@@ -938,7 +915,6 @@ export async function selectCategory(criteria: ParCategory): Promise<Category[]>
 		if (criteria.page) query = query.offset((criteria.limit ?? 0) * (criteria.page - 1));
 
 		const r = await query.execute();
-		await db.destroy();
 
 		return r.map((r) => {
 			return {
@@ -957,9 +933,8 @@ export async function selectCategory(criteria: ParCategory): Promise<Category[]>
 	}
 }
 
-export async function selectCategoryBySID(sid: CategorySID): Promise<Category | undefined> {
+export async function selectCategoryBySID(db: DB, sid: CategorySID): Promise<Category | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.selectFrom('donoengine.category as a')
 			.innerJoin('donoengine.category_type as b', 'b.id', 'a.type_id')
@@ -985,7 +960,6 @@ export async function selectCategoryBySID(sid: CategorySID): Promise<Category | 
 			)
 			.where('code', '=', sid.code)
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -1004,11 +978,11 @@ export async function selectCategoryBySID(sid: CategorySID): Promise<Category | 
 }
 
 export async function updateCategoryBySID(
+	db: DB,
 	sid: CategorySID,
 	v: SetCategory
 ): Promise<Category | undefined> {
 	try {
-		const db = database();
 		const query = async function (qc: QueryCreator<Database>) {
 			return await qc
 				.with('a', (qc) => {
@@ -1098,7 +1072,6 @@ export async function updateCategoryBySID(
 		}
 
 		const r = await query(db);
-		await db.destroy();
 
 		if (r)
 			return {
@@ -1130,9 +1103,8 @@ export async function updateCategoryBySID(
 	}
 }
 
-export async function deleteCategoryBySID(sid: CategorySID): Promise<boolean> {
+export async function deleteCategoryBySID(db: DB, sid: CategorySID): Promise<boolean> {
 	try {
-		const db = database();
 		const r = await db
 			.deleteFrom('donoengine.category')
 			.where(
@@ -1148,7 +1120,6 @@ export async function deleteCategoryBySID(sid: CategorySID): Promise<boolean> {
 			)
 			.where('code', '=', sid.code)
 			.executeTakeFirst();
-		await db.destroy();
 
 		return r.numDeletedRows > 0;
 	} catch (e) {
@@ -1157,9 +1128,8 @@ export async function deleteCategoryBySID(sid: CategorySID): Promise<boolean> {
 	}
 }
 
-export async function existsCategoryBySID(sid: CategorySID): Promise<boolean> {
+export async function existsCategoryBySID(db: DB, sid: CategorySID): Promise<boolean> {
 	try {
-		const db = database();
 		const { exists } = await db
 			.selectNoFrom(({ exists, selectFrom }) =>
 				exists(
@@ -1180,7 +1150,6 @@ export async function existsCategoryBySID(sid: CategorySID): Promise<boolean> {
 				).as('exists')
 			)
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return Boolean(exists);
 	} catch (e) {
@@ -1189,15 +1158,13 @@ export async function existsCategoryBySID(sid: CategorySID): Promise<boolean> {
 	}
 }
 
-export async function countCategory(criteria: ParCategory): Promise<number> {
+export async function countCategory(db: DB, criteria: ParCategory): Promise<number> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.category');
 
 		const { count } = await query
 			.select((eb) => eb.fn.countAll<number>().as('count'))
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return count;
 	} catch (e) {
@@ -1218,9 +1185,11 @@ const NAME_ERROR_CATEGORYRELATION_FKEY0 = 'category_relation_parent_id_fkey';
 const NAME_ERROR_CATEGORYRELATION_FKEY1 = 'category_relation_child_id_fkey';
 const NAME_ERROR_CATEGORYRELATION_CHECK = 'category_relation_parent_id_child_id_check';
 
-export async function insertCategoryRelation(v: NewCategoryRelation): Promise<CategoryRelation> {
+export async function insertCategoryRelation(
+	db: DB,
+	v: NewCategoryRelation
+): Promise<CategoryRelation> {
 	try {
-		const db = database();
 		const query = async function (qc: QueryCreator<Database>) {
 			return await qc
 				.with('a', (qc) =>
@@ -1299,8 +1268,6 @@ export async function insertCategoryRelation(v: NewCategoryRelation): Promise<Ca
 				throw new GenericError('category relation loop detected');
 			}
 
-			await db.destroy();
-
 			return {
 				createdAt: r.created_at,
 				updatedAt: r.updated_at,
@@ -1338,10 +1305,10 @@ export async function insertCategoryRelation(v: NewCategoryRelation): Promise<Ca
 }
 
 export async function selectCategoryRelation(
+	db: DB,
 	criteria: ParCategoryRelation
 ): Promise<CategoryRelation[]> {
 	try {
-		const db = database();
 		let query = db
 			.selectFrom('donoengine.category_relation as a')
 			.innerJoin('donoengine.category as b', 'b.id', 'a.child_id')
@@ -1398,7 +1365,6 @@ export async function selectCategoryRelation(
 		if (criteria.page) query = query.offset((criteria.limit ?? 0) * (criteria.page - 1));
 
 		const r = await query.execute();
-		await db.destroy();
 
 		return r.map((r) => {
 			return {
@@ -1416,10 +1382,10 @@ export async function selectCategoryRelation(
 }
 
 export async function selectCategoryRelationBySID(
+	db: DB,
 	sid: CategoryRelationSID
 ): Promise<CategoryRelation | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.selectFrom('donoengine.category_relation as a')
 			.where(
@@ -1469,7 +1435,6 @@ export async function selectCategoryRelationBySID(
 			.innerJoin('donoengine.category as b', 'b.id', 'a.child_id')
 			.select(['a.created_at', 'a.updated_at', 'a.parent_id', 'a.child_id', 'b.code as child_code'])
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -1486,11 +1451,11 @@ export async function selectCategoryRelationBySID(
 }
 
 export async function updateCategoryRelationBySID(
+	db: DB,
 	sid: CategoryRelationSID,
 	v: SetCategoryRelation
 ): Promise<CategoryRelation | undefined> {
 	try {
-		const db = database();
 		const query = async function (qc: QueryCreator<Database>) {
 			return await qc
 				.with('a', (qc) => {
@@ -1665,8 +1630,6 @@ export async function updateCategoryRelationBySID(
 					throw new GenericError('category relation loop detected');
 				}
 
-				await db.destroy();
-
 				return {
 					createdAt: r.created_at,
 					updatedAt: r.updated_at,
@@ -1704,9 +1667,11 @@ export async function updateCategoryRelationBySID(
 	}
 }
 
-export async function deleteCategoryRelationBySID(sid: CategoryRelationSID): Promise<boolean> {
+export async function deleteCategoryRelationBySID(
+	db: DB,
+	sid: CategoryRelationSID
+): Promise<boolean> {
 	try {
-		const db = database();
 		const r = await db
 			.deleteFrom('donoengine.category_relation')
 			.where(
@@ -1754,7 +1719,6 @@ export async function deleteCategoryRelationBySID(sid: CategoryRelationSID): Pro
 					: 0
 			)
 			.executeTakeFirst();
-		await db.destroy();
 
 		return r.numDeletedRows > 0;
 	} catch (e) {
@@ -1763,9 +1727,11 @@ export async function deleteCategoryRelationBySID(sid: CategoryRelationSID): Pro
 	}
 }
 
-export async function existsCategoryRelationBySID(sid: CategoryRelationSID): Promise<boolean> {
+export async function existsCategoryRelationBySID(
+	db: DB,
+	sid: CategoryRelationSID
+): Promise<boolean> {
 	try {
-		const db = database();
 		const { exists } = await db
 			.selectNoFrom(({ exists, selectFrom }) =>
 				exists(
@@ -1818,7 +1784,6 @@ export async function existsCategoryRelationBySID(sid: CategoryRelationSID): Pro
 				).as('exists')
 			)
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return Boolean(exists);
 	} catch (e) {
@@ -1827,7 +1792,10 @@ export async function existsCategoryRelationBySID(sid: CategoryRelationSID): Pro
 	}
 }
 
-export async function countCategoryRelation(criteria: ParCategoryRelation): Promise<number> {
+export async function countCategoryRelation(
+	db: DB,
+	criteria: ParCategoryRelation
+): Promise<number> {
 	try {
 		const db = database();
 		let query = db.selectFrom('donoengine.category_relation');
@@ -1835,7 +1803,6 @@ export async function countCategoryRelation(criteria: ParCategoryRelation): Prom
 		const { count } = await query
 			.select((eb) => eb.fn.countAll<number>().as('count'))
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return count;
 	} catch (e) {
@@ -1854,9 +1821,8 @@ interface TagTypeTable {
 
 const NAME_ERROR_TAGTYPE_KEY = 'tag_type_code_key';
 
-export async function insertTagType(v: NewTagType): Promise<TagType> {
+export async function insertTagType(db: DB, v: NewTagType): Promise<TagType> {
 	try {
-		const db = database();
 		const r = await db
 			.insertInto('donoengine.tag_type')
 			.values({
@@ -1865,7 +1831,6 @@ export async function insertTagType(v: NewTagType): Promise<TagType> {
 			})
 			.returningAll()
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return {
 			id: r.id,
@@ -1885,9 +1850,8 @@ export async function insertTagType(v: NewTagType): Promise<TagType> {
 	}
 }
 
-export async function selectTagType(criteria: ParTagType): Promise<TagType[]> {
+export async function selectTagType(db: DB, criteria: ParTagType): Promise<TagType[]> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.tag_type');
 
 		if (criteria.orderBys)
@@ -1934,7 +1898,6 @@ export async function selectTagType(criteria: ParTagType): Promise<TagType[]> {
 		if (criteria.page) query = query.offset((criteria.limit ?? 0) * (criteria.page - 1));
 
 		const r = await query.selectAll().execute();
-		await db.destroy();
 
 		return r.map((r) => {
 			return {
@@ -1951,15 +1914,13 @@ export async function selectTagType(criteria: ParTagType): Promise<TagType[]> {
 	}
 }
 
-export async function selectTagTypeByCode(code: string): Promise<TagType | undefined> {
+export async function selectTagTypeByCode(db: DB, code: string): Promise<TagType | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.selectFrom('donoengine.tag_type')
 			.where('code', '=', code)
 			.selectAll()
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -1976,11 +1937,11 @@ export async function selectTagTypeByCode(code: string): Promise<TagType | undef
 }
 
 export async function updateTagTypeByCode(
+	db: DB,
 	code: string,
 	v: SetTagType
 ): Promise<TagType | undefined> {
 	try {
-		const db = database();
 		let query = db
 			.updateTable('donoengine.tag_type')
 			.set({
@@ -1994,7 +1955,6 @@ export async function updateTagTypeByCode(
 		if (v.name) query = query.where('name', '!=', v.name);
 
 		const r = await query.returningAll().executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -2015,14 +1975,12 @@ export async function updateTagTypeByCode(
 	}
 }
 
-export async function deleteTagTypeByCode(code: string): Promise<boolean> {
+export async function deleteTagTypeByCode(db: DB, code: string): Promise<boolean> {
 	try {
-		const db = database();
 		const r = await db
 			.deleteFrom('donoengine.tag_type')
 			.where('code', '=', code)
 			.executeTakeFirst();
-		await db.destroy();
 
 		return r.numDeletedRows > 0;
 	} catch (e) {
@@ -2031,9 +1989,8 @@ export async function deleteTagTypeByCode(code: string): Promise<boolean> {
 	}
 }
 
-export async function existsTagTypeByCode(code: string): Promise<boolean> {
+export async function existsTagTypeByCode(db: DB, code: string): Promise<boolean> {
 	try {
-		const db = database();
 		const { exists } = await db
 			.selectNoFrom(({ exists, selectFrom }) =>
 				exists(
@@ -2043,7 +2000,6 @@ export async function existsTagTypeByCode(code: string): Promise<boolean> {
 				).as('exists')
 			)
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return Boolean(exists);
 	} catch (e) {
@@ -2052,15 +2008,13 @@ export async function existsTagTypeByCode(code: string): Promise<boolean> {
 	}
 }
 
-export async function countTagType(criteria: ParTagType): Promise<number> {
+export async function countTagType(db: DB, criteria: ParTagType): Promise<number> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.tag_type');
 
 		const { count } = await query
 			.select((eb) => eb.fn.countAll<number>().as('count'))
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return count;
 	} catch (e) {
@@ -2081,9 +2035,8 @@ interface TagTable {
 const NAME_ERROR_TAG_KEY = 'tag_type_id_code_key';
 const NAME_ERROR_TAG_FKEY = 'tag_type_id_fkey';
 
-export async function insertTag(v: NewTag): Promise<Tag> {
+export async function insertTag(db: DB, v: NewTag): Promise<Tag> {
 	try {
-		const db = database();
 		const r = await db
 			.with('a', (qc) =>
 				qc
@@ -2114,7 +2067,6 @@ export async function insertTag(v: NewTag): Promise<Tag> {
 				'b.code as type_code'
 			])
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return {
 			id: r.id,
@@ -2145,9 +2097,8 @@ export async function insertTag(v: NewTag): Promise<Tag> {
 	}
 }
 
-export async function selectTag(criteria: ParTag): Promise<Tag[]> {
+export async function selectTag(db: DB, criteria: ParTag): Promise<Tag[]> {
 	try {
-		const db = database();
 		let query = db
 			.selectFrom('donoengine.tag as a')
 			.innerJoin('donoengine.tag_type as b', 'b.id', 'a.type_id')
@@ -2207,7 +2158,6 @@ export async function selectTag(criteria: ParTag): Promise<Tag[]> {
 		if (criteria.page) query = query.offset((criteria.limit ?? 0) * (criteria.page - 1));
 
 		const r = await query.execute();
-		await db.destroy();
 
 		return r.map((r) => {
 			return {
@@ -2226,9 +2176,8 @@ export async function selectTag(criteria: ParTag): Promise<Tag[]> {
 	}
 }
 
-export async function selectTagBySID(sid: TagSID): Promise<Tag | undefined> {
+export async function selectTagBySID(db: DB, sid: TagSID): Promise<Tag | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.selectFrom('donoengine.tag as a')
 			.innerJoin('donoengine.tag_type as b', 'b.id', 'a.type_id')
@@ -2254,7 +2203,6 @@ export async function selectTagBySID(sid: TagSID): Promise<Tag | undefined> {
 			)
 			.where('code', '=', sid.code)
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -2272,9 +2220,8 @@ export async function selectTagBySID(sid: TagSID): Promise<Tag | undefined> {
 	}
 }
 
-export async function updateTagBySID(sid: TagSID, v: SetTag): Promise<Tag | undefined> {
+export async function updateTagBySID(db: DB, sid: TagSID, v: SetTag): Promise<Tag | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.with('a', (qc) => {
 				let query = qc
@@ -2335,7 +2282,6 @@ export async function updateTagBySID(sid: TagSID, v: SetTag): Promise<Tag | unde
 				'b.code as type_code'
 			])
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -2367,9 +2313,8 @@ export async function updateTagBySID(sid: TagSID, v: SetTag): Promise<Tag | unde
 	}
 }
 
-export async function deleteTagBySID(sid: TagSID): Promise<boolean> {
+export async function deleteTagBySID(db: DB, sid: TagSID): Promise<boolean> {
 	try {
-		const db = database();
 		const r = await db
 			.deleteFrom('donoengine.tag')
 			.where(
@@ -2385,7 +2330,6 @@ export async function deleteTagBySID(sid: TagSID): Promise<boolean> {
 			)
 			.where('code', '=', sid.code)
 			.executeTakeFirst();
-		await db.destroy();
 
 		return r.numDeletedRows > 0;
 	} catch (e) {
@@ -2394,9 +2338,8 @@ export async function deleteTagBySID(sid: TagSID): Promise<boolean> {
 	}
 }
 
-export async function existsTagBySID(sid: TagSID): Promise<boolean> {
+export async function existsTagBySID(db: DB, sid: TagSID): Promise<boolean> {
 	try {
-		const db = database();
 		const { exists } = await db
 			.selectNoFrom(({ exists, selectFrom }) =>
 				exists(
@@ -2417,7 +2360,6 @@ export async function existsTagBySID(sid: TagSID): Promise<boolean> {
 				).as('exists')
 			)
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return Boolean(exists);
 	} catch (e) {
@@ -2426,15 +2368,13 @@ export async function existsTagBySID(sid: TagSID): Promise<boolean> {
 	}
 }
 
-export async function countTag(criteria: ParTag): Promise<number> {
+export async function countTag(db: DB, criteria: ParTag): Promise<number> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.tag');
 
 		const { count } = await query
 			.select((eb) => eb.fn.countAll<number>().as('count'))
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return count;
 	} catch (e) {
@@ -2461,9 +2401,8 @@ interface ComicTable {
 const NAME_ERROR_COMIC_KEY = 'comic_code_key';
 const NAME_ERROR_COMIC_FKEY = 'comic_language_id_fkey';
 
-export async function insertComic(v: NewComic): Promise<Comic> {
+export async function insertComic(db: DB, v: NewComic): Promise<Comic> {
 	try {
-		const db = database();
 		const r = await db
 			.with('a', (qc) =>
 				qc
@@ -2506,7 +2445,6 @@ export async function insertComic(v: NewComic): Promise<Comic> {
 				'a.additionals'
 			])
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return {
 			id: r.id,
@@ -2543,9 +2481,8 @@ export async function insertComic(v: NewComic): Promise<Comic> {
 	}
 }
 
-export async function selectComic(criteria: ParComic): Promise<Comic[]> {
+export async function selectComic(db: DB, criteria: ParComic): Promise<Comic[]> {
 	try {
-		const db = database();
 		let query = db
 			.selectFrom('donoengine.comic as a')
 			.innerJoin('donoengine.language as b', 'b.id', 'a.language_id')
@@ -2643,7 +2580,6 @@ export async function selectComic(criteria: ParComic): Promise<Comic[]> {
 		if (criteria.page) query = query.offset((criteria.limit ?? 0) * (criteria.page - 1));
 
 		const r = await query.execute();
-		await db.destroy();
 
 		return r.map((r) => {
 			return {
@@ -2668,9 +2604,8 @@ export async function selectComic(criteria: ParComic): Promise<Comic[]> {
 	}
 }
 
-export async function selectComicByCode(code: string): Promise<Comic | undefined> {
+export async function selectComicByCode(db: DB, code: string): Promise<Comic | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.selectFrom('donoengine.comic as a')
 			.innerJoin('donoengine.language as b', 'b.id', 'a.language_id')
@@ -2691,7 +2626,6 @@ export async function selectComicByCode(code: string): Promise<Comic | undefined
 				'a.additionals'
 			])
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -2715,9 +2649,12 @@ export async function selectComicByCode(code: string): Promise<Comic | undefined
 	}
 }
 
-export async function updateComicByCode(code: string, v: SetComic): Promise<Comic | undefined> {
+export async function updateComicByCode(
+	db: DB,
+	code: string,
+	v: SetComic
+): Promise<Comic | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.with('a', (qc) => {
 				let query = qc
@@ -2790,7 +2727,6 @@ export async function updateComicByCode(code: string, v: SetComic): Promise<Comi
 				'a.additionals'
 			])
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -2828,11 +2764,9 @@ export async function updateComicByCode(code: string, v: SetComic): Promise<Comi
 	}
 }
 
-export async function deleteComicByCode(code: string): Promise<boolean> {
+export async function deleteComicByCode(db: DB, code: string): Promise<boolean> {
 	try {
-		const db = database();
 		const r = await db.deleteFrom('donoengine.comic').where('code', '=', code).executeTakeFirst();
-		await db.destroy();
 
 		return r.numDeletedRows > 0;
 	} catch (e) {
@@ -2841,9 +2775,8 @@ export async function deleteComicByCode(code: string): Promise<boolean> {
 	}
 }
 
-export async function existsComicByCode(code: string): Promise<boolean> {
+export async function existsComicByCode(db: DB, code: string): Promise<boolean> {
 	try {
-		const db = database();
 		const { exists } = await db
 			.selectNoFrom(({ exists, selectFrom }) =>
 				exists(
@@ -2853,7 +2786,6 @@ export async function existsComicByCode(code: string): Promise<boolean> {
 				).as('exists')
 			)
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return Boolean(exists);
 	} catch (e) {
@@ -2862,9 +2794,8 @@ export async function existsComicByCode(code: string): Promise<boolean> {
 	}
 }
 
-export async function countComic(criteria: ParComic): Promise<number> {
+export async function countComic(db: DB, criteria: ParComic): Promise<number> {
 	try {
-		const db = database();
 		let distinct = false;
 
 		let query = db
@@ -2906,7 +2837,6 @@ export async function countComic(criteria: ParComic): Promise<number> {
 				return eb.fn.countAll<number>().as('count');
 			})
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return count;
 	} catch (e) {
@@ -2932,9 +2862,8 @@ const NAME_ERROR_COMICTITLE_KEY1 = 'comic_title_comic_id_title_key';
 const NAME_ERROR_COMICTITLE_FKEY0 = 'comic_title_comic_id_fkey';
 const NAME_ERROR_COMICTITLE_FKEY1 = 'comic_title_language_id_fkey';
 
-export async function insertComicTitle(v: NewComicTitle): Promise<ComicTitle> {
+export async function insertComicTitle(db: DB, v: NewComicTitle): Promise<ComicTitle> {
 	try {
-		const db = database();
 		const r = await db
 			.with('a', (qc) =>
 				qc
@@ -2978,7 +2907,6 @@ export async function insertComicTitle(v: NewComicTitle): Promise<ComicTitle> {
 				'a.romanized'
 			])
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return {
 			id: r.id,
@@ -3018,9 +2946,8 @@ export async function insertComicTitle(v: NewComicTitle): Promise<ComicTitle> {
 	}
 }
 
-export async function selectComicTitle(criteria: ParComicTitle): Promise<ComicTitle[]> {
+export async function selectComicTitle(db: DB, criteria: ParComicTitle): Promise<ComicTitle[]> {
 	try {
-		const db = database();
 		let query = db
 			.selectFrom('donoengine.comic_title as a')
 			.innerJoin('donoengine.language as b', 'b.id', 'a.language_id')
@@ -3092,7 +3019,6 @@ export async function selectComicTitle(criteria: ParComicTitle): Promise<ComicTi
 		if (criteria.page) query = query.offset((criteria.limit ?? 0) * (criteria.page - 1));
 
 		const r = await query.execute();
-		await db.destroy();
 
 		return r.map((r) => {
 			return {
@@ -3114,9 +3040,11 @@ export async function selectComicTitle(criteria: ParComicTitle): Promise<ComicTi
 	}
 }
 
-export async function selectComicTitleBySID(sid: ComicGenericSID): Promise<ComicTitle | undefined> {
+export async function selectComicTitleBySID(
+	db: DB,
+	sid: ComicGenericSID
+): Promise<ComicTitle | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.selectFrom('donoengine.comic_title as a')
 			.innerJoin('donoengine.language as b', 'b.id', 'a.language_id')
@@ -3145,7 +3073,6 @@ export async function selectComicTitleBySID(sid: ComicGenericSID): Promise<Comic
 			)
 			.where('rid', '=', sid.rid)
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -3167,11 +3094,11 @@ export async function selectComicTitleBySID(sid: ComicGenericSID): Promise<Comic
 }
 
 export async function updateComicTitleBySID(
+	db: DB,
 	sid: ComicGenericSID,
 	v: SetComicTitle
 ): Promise<ComicTitle | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.with('a', (qc) => {
 				let query = qc
@@ -3262,7 +3189,6 @@ export async function updateComicTitleBySID(
 				'a.romanized'
 			])
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -3303,9 +3229,8 @@ export async function updateComicTitleBySID(
 	}
 }
 
-export async function deleteComicTitleBySID(sid: ComicGenericSID): Promise<boolean> {
+export async function deleteComicTitleBySID(db: DB, sid: ComicGenericSID): Promise<boolean> {
 	try {
-		const db = database();
 		const r = await db
 			.deleteFrom('donoengine.comic_title')
 			.where(
@@ -3321,7 +3246,6 @@ export async function deleteComicTitleBySID(sid: ComicGenericSID): Promise<boole
 			)
 			.where('rid', '=', sid.rid)
 			.executeTakeFirst();
-		await db.destroy();
 
 		return r.numDeletedRows > 0;
 	} catch (e) {
@@ -3330,9 +3254,8 @@ export async function deleteComicTitleBySID(sid: ComicGenericSID): Promise<boole
 	}
 }
 
-export async function existsComicTitleBySID(sid: ComicGenericSID): Promise<boolean> {
+export async function existsComicTitleBySID(db: DB, sid: ComicGenericSID): Promise<boolean> {
 	try {
-		const db = database();
 		const { exists } = await db
 			.selectNoFrom(({ exists, selectFrom }) =>
 				exists(
@@ -3353,7 +3276,6 @@ export async function existsComicTitleBySID(sid: ComicGenericSID): Promise<boole
 				).as('exists')
 			)
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return Boolean(exists);
 	} catch (e) {
@@ -3362,15 +3284,13 @@ export async function existsComicTitleBySID(sid: ComicGenericSID): Promise<boole
 	}
 }
 
-export async function countComicTitle(criteria: ParComicTitle): Promise<number> {
+export async function countComicTitle(db: DB, criteria: ParComicTitle): Promise<number> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.comic_title');
 
 		const { count } = await query
 			.select((eb) => eb.fn.countAll<number>().as('count'))
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return count;
 	} catch (e) {
@@ -3395,9 +3315,8 @@ const NAME_ERROR_COMICCOVER_KEY1 = 'comic_cover_comic_id_website_id_relative_url
 const NAME_ERROR_COMICCOVER_FKEY0 = 'comic_cover_comic_id_fkey';
 const NAME_ERROR_COMICCOVER_FKEY1 = 'comic_cover_website_id_fkey';
 
-export async function insertComicCover(v: NewComicCover): Promise<ComicCover> {
+export async function insertComicCover(db: DB, v: NewComicCover): Promise<ComicCover> {
 	try {
-		const db = database();
 		const r = await db
 			.with('a', (qc) =>
 				qc
@@ -3439,7 +3358,6 @@ export async function insertComicCover(v: NewComicCover): Promise<ComicCover> {
 				'a.priority'
 			])
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return {
 			id: r.id,
@@ -3478,9 +3396,8 @@ export async function insertComicCover(v: NewComicCover): Promise<ComicCover> {
 	}
 }
 
-export async function selectComicCover(criteria: ParComicCover): Promise<ComicCover[]> {
+export async function selectComicCover(db: DB, criteria: ParComicCover): Promise<ComicCover[]> {
 	try {
-		const db = database();
 		let query = db
 			.selectFrom('donoengine.comic_cover as a')
 			.innerJoin('donoengine.website as b', 'b.id', 'a.website_id')
@@ -3550,7 +3467,6 @@ export async function selectComicCover(criteria: ParComicCover): Promise<ComicCo
 		if (criteria.page) query = query.offset((criteria.limit ?? 0) * (criteria.page - 1));
 
 		const r = await query.execute();
-		await db.destroy();
 
 		return r.map((r) => {
 			return {
@@ -3571,9 +3487,11 @@ export async function selectComicCover(criteria: ParComicCover): Promise<ComicCo
 	}
 }
 
-export async function selectComicCoverBySID(sid: ComicGenericSID): Promise<ComicCover | undefined> {
+export async function selectComicCoverBySID(
+	db: DB,
+	sid: ComicGenericSID
+): Promise<ComicCover | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.selectFrom('donoengine.comic_cover as a')
 			.innerJoin('donoengine.website as b', 'b.id', 'a.website_id')
@@ -3601,7 +3519,6 @@ export async function selectComicCoverBySID(sid: ComicGenericSID): Promise<Comic
 			)
 			.where('rid', '=', sid.rid)
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -3622,11 +3539,11 @@ export async function selectComicCoverBySID(sid: ComicGenericSID): Promise<Comic
 }
 
 export async function updateComicCoverBySID(
+	db: DB,
 	sid: ComicGenericSID,
 	v: SetComicCover
 ): Promise<ComicCover | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.with('a', (qc) => {
 				let query = qc
@@ -3713,7 +3630,6 @@ export async function updateComicCoverBySID(
 				'a.priority'
 			])
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -3753,9 +3669,8 @@ export async function updateComicCoverBySID(
 	}
 }
 
-export async function deleteComicCoverBySID(sid: ComicGenericSID): Promise<boolean> {
+export async function deleteComicCoverBySID(db: DB, sid: ComicGenericSID): Promise<boolean> {
 	try {
-		const db = database();
 		const r = await db
 			.deleteFrom('donoengine.comic_cover')
 			.where(
@@ -3771,7 +3686,6 @@ export async function deleteComicCoverBySID(sid: ComicGenericSID): Promise<boole
 			)
 			.where('rid', '=', sid.rid)
 			.executeTakeFirst();
-		await db.destroy();
 
 		return r.numDeletedRows > 0;
 	} catch (e) {
@@ -3780,9 +3694,8 @@ export async function deleteComicCoverBySID(sid: ComicGenericSID): Promise<boole
 	}
 }
 
-export async function existsComicCoverBySID(sid: ComicGenericSID): Promise<boolean> {
+export async function existsComicCoverBySID(db: DB, sid: ComicGenericSID): Promise<boolean> {
 	try {
-		const db = database();
 		const { exists } = await db
 			.selectNoFrom(({ exists, selectFrom }) =>
 				exists(
@@ -3803,7 +3716,6 @@ export async function existsComicCoverBySID(sid: ComicGenericSID): Promise<boole
 				).as('exists')
 			)
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return Boolean(exists);
 	} catch (e) {
@@ -3812,15 +3724,13 @@ export async function existsComicCoverBySID(sid: ComicGenericSID): Promise<boole
 	}
 }
 
-export async function countComicCover(criteria: ParComicCover): Promise<number> {
+export async function countComicCover(db: DB, criteria: ParComicCover): Promise<number> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.comic_cover');
 
 		const { count } = await query
 			.select((eb) => eb.fn.countAll<number>().as('count'))
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return count;
 	} catch (e) {
@@ -3846,9 +3756,8 @@ const NAME_ERROR_COMICSYNOPSIS_KEY1 = 'comic_synopsis_comic_id_synopsis_key';
 const NAME_ERROR_COMICSYNOPSIS_FKEY0 = 'comic_synopsis_comic_id_fkey';
 const NAME_ERROR_COMICSYNOPSIS_FKEY1 = 'comic_synopsis_language_id_fkey';
 
-export async function insertComicSynopsis(v: NewComicSynopsis): Promise<ComicSynopsis> {
+export async function insertComicSynopsis(db: DB, v: NewComicSynopsis): Promise<ComicSynopsis> {
 	try {
-		const db = database();
 		const r = await db
 			.with('a', (qc) =>
 				qc
@@ -3892,7 +3801,6 @@ export async function insertComicSynopsis(v: NewComicSynopsis): Promise<ComicSyn
 				'a.romanized'
 			])
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return {
 			id: r.id,
@@ -3932,9 +3840,11 @@ export async function insertComicSynopsis(v: NewComicSynopsis): Promise<ComicSyn
 	}
 }
 
-export async function selectComicSynopsis(criteria: ParComicSynopsis): Promise<ComicSynopsis[]> {
+export async function selectComicSynopsis(
+	db: DB,
+	criteria: ParComicSynopsis
+): Promise<ComicSynopsis[]> {
 	try {
-		const db = database();
 		let query = db
 			.selectFrom('donoengine.comic_synopsis as a')
 			.innerJoin('donoengine.language as b', 'b.id', 'a.language_id')
@@ -4006,7 +3916,6 @@ export async function selectComicSynopsis(criteria: ParComicSynopsis): Promise<C
 		if (criteria.page) query = query.offset((criteria.limit ?? 0) * (criteria.page - 1));
 
 		const r = await query.execute();
-		await db.destroy();
 
 		return r.map((r) => {
 			return {
@@ -4029,10 +3938,10 @@ export async function selectComicSynopsis(criteria: ParComicSynopsis): Promise<C
 }
 
 export async function selectComicSynopsisBySID(
+	db: DB,
 	sid: ComicGenericSID
 ): Promise<ComicSynopsis | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.selectFrom('donoengine.comic_synopsis as a')
 			.innerJoin('donoengine.language as b', 'b.id', 'a.language_id')
@@ -4061,7 +3970,6 @@ export async function selectComicSynopsisBySID(
 			)
 			.where('rid', '=', sid.rid)
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -4083,11 +3991,11 @@ export async function selectComicSynopsisBySID(
 }
 
 export async function updateComicSynopsisBySID(
+	db: DB,
 	sid: ComicGenericSID,
 	v: SetComicSynopsis
 ): Promise<ComicSynopsis | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.with('a', (qc) => {
 				let query = qc
@@ -4178,7 +4086,6 @@ export async function updateComicSynopsisBySID(
 				'a.romanized'
 			])
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -4219,9 +4126,8 @@ export async function updateComicSynopsisBySID(
 	}
 }
 
-export async function deleteComicSynopsisBySID(sid: ComicGenericSID): Promise<boolean> {
+export async function deleteComicSynopsisBySID(db: DB, sid: ComicGenericSID): Promise<boolean> {
 	try {
-		const db = database();
 		const r = await db
 			.deleteFrom('donoengine.comic_synopsis')
 			.where(
@@ -4237,7 +4143,6 @@ export async function deleteComicSynopsisBySID(sid: ComicGenericSID): Promise<bo
 			)
 			.where('rid', '=', sid.rid)
 			.executeTakeFirst();
-		await db.destroy();
 
 		return r.numDeletedRows > 0;
 	} catch (e) {
@@ -4246,9 +4151,8 @@ export async function deleteComicSynopsisBySID(sid: ComicGenericSID): Promise<bo
 	}
 }
 
-export async function existsComicSynopsisBySID(sid: ComicGenericSID): Promise<boolean> {
+export async function existsComicSynopsisBySID(db: DB, sid: ComicGenericSID): Promise<boolean> {
 	try {
-		const db = database();
 		const { exists } = await db
 			.selectNoFrom(({ exists, selectFrom }) =>
 				exists(
@@ -4269,7 +4173,6 @@ export async function existsComicSynopsisBySID(sid: ComicGenericSID): Promise<bo
 				).as('exists')
 			)
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return Boolean(exists);
 	} catch (e) {
@@ -4278,15 +4181,13 @@ export async function existsComicSynopsisBySID(sid: ComicGenericSID): Promise<bo
 	}
 }
 
-export async function countComicSynopsis(criteria: ParComicSynopsis): Promise<number> {
+export async function countComicSynopsis(db: DB, criteria: ParComicSynopsis): Promise<number> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.comic_synopsis');
 
 		const { count } = await query
 			.select((eb) => eb.fn.countAll<number>().as('count'))
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return count;
 	} catch (e) {
@@ -4311,9 +4212,8 @@ const NAME_ERROR_COMICEXTERNAL_KEY1 = 'comic_external_comic_id_website_id_relati
 const NAME_ERROR_COMICEXTERNAL_FKEY0 = 'comic_external_comic_id_fkey';
 const NAME_ERROR_COMICEXTERNAL_FKEY1 = 'comic_external_website_id_fkey';
 
-export async function insertComicExternal(v: NewComicExternal): Promise<ComicExternal> {
+export async function insertComicExternal(db: DB, v: NewComicExternal): Promise<ComicExternal> {
 	try {
-		const db = database();
 		const r = await db
 			.with('a', (qc) =>
 				qc
@@ -4355,7 +4255,6 @@ export async function insertComicExternal(v: NewComicExternal): Promise<ComicExt
 				'a.official'
 			])
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return {
 			id: r.id,
@@ -4394,9 +4293,11 @@ export async function insertComicExternal(v: NewComicExternal): Promise<ComicExt
 	}
 }
 
-export async function selectComicExternal(criteria: ParComicExternal): Promise<ComicExternal[]> {
+export async function selectComicExternal(
+	db: DB,
+	criteria: ParComicExternal
+): Promise<ComicExternal[]> {
 	try {
-		const db = database();
 		let query = db
 			.selectFrom('donoengine.comic_external as a')
 			.innerJoin('donoengine.website as b', 'b.id', 'a.website_id')
@@ -4466,7 +4367,6 @@ export async function selectComicExternal(criteria: ParComicExternal): Promise<C
 		if (criteria.page) query = query.offset((criteria.limit ?? 0) * (criteria.page - 1));
 
 		const r = await query.execute();
-		await db.destroy();
 
 		return r.map((r) => {
 			return {
@@ -4488,10 +4388,10 @@ export async function selectComicExternal(criteria: ParComicExternal): Promise<C
 }
 
 export async function selectComicExternalBySID(
+	db: DB,
 	sid: ComicGenericSID
 ): Promise<ComicExternal | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.selectFrom('donoengine.comic_external as a')
 			.innerJoin('donoengine.website as b', 'b.id', 'a.website_id')
@@ -4519,7 +4419,6 @@ export async function selectComicExternalBySID(
 			)
 			.where('rid', '=', sid.rid)
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -4540,6 +4439,7 @@ export async function selectComicExternalBySID(
 }
 
 export async function updateComicExternalBySID(
+	db: DB,
 	sid: ComicGenericSID,
 	v: SetComicExternal
 ): Promise<ComicExternal | undefined> {
@@ -4632,7 +4532,6 @@ export async function updateComicExternalBySID(
 				'a.official'
 			])
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -4672,9 +4571,8 @@ export async function updateComicExternalBySID(
 	}
 }
 
-export async function deleteComicExternalBySID(sid: ComicGenericSID): Promise<boolean> {
+export async function deleteComicExternalBySID(db: DB, sid: ComicGenericSID): Promise<boolean> {
 	try {
-		const db = database();
 		const r = await db
 			.deleteFrom('donoengine.comic_external')
 			.where(
@@ -4690,7 +4588,6 @@ export async function deleteComicExternalBySID(sid: ComicGenericSID): Promise<bo
 			)
 			.where('rid', '=', sid.rid)
 			.executeTakeFirst();
-		await db.destroy();
 
 		return r.numDeletedRows > 0;
 	} catch (e) {
@@ -4699,9 +4596,8 @@ export async function deleteComicExternalBySID(sid: ComicGenericSID): Promise<bo
 	}
 }
 
-export async function existsComicExternalBySID(sid: ComicGenericSID): Promise<boolean> {
+export async function existsComicExternalBySID(db: DB, sid: ComicGenericSID): Promise<boolean> {
 	try {
-		const db = database();
 		const { exists } = await db
 			.selectNoFrom(({ exists, selectFrom }) =>
 				exists(
@@ -4722,7 +4618,6 @@ export async function existsComicExternalBySID(sid: ComicGenericSID): Promise<bo
 				).as('exists')
 			)
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return Boolean(exists);
 	} catch (e) {
@@ -4731,15 +4626,13 @@ export async function existsComicExternalBySID(sid: ComicGenericSID): Promise<bo
 	}
 }
 
-export async function countComicExternal(criteria: ParComicExternal): Promise<number> {
+export async function countComicExternal(db: DB, criteria: ParComicExternal): Promise<number> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.comic_external');
 
 		const { count } = await query
 			.select((eb) => eb.fn.countAll<number>().as('count'))
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return count;
 	} catch (e) {
@@ -4759,9 +4652,8 @@ const NAME_ERROR_COMICCATEGORY_PKEY = 'comic_category_pkey';
 const NAME_ERROR_COMICCATEGORY_FKEY0 = 'comic_category_comic_id_fkey';
 const NAME_ERROR_COMICCATEGORY_FKEY1 = 'comic_category_category_id_fkey';
 
-export async function insertComicCategory(v: NewComicCategory): Promise<ComicCategory> {
+export async function insertComicCategory(db: DB, v: NewComicCategory): Promise<ComicCategory> {
 	try {
-		const db = database();
 		const r = await db
 			.with('a', (qc) =>
 				qc
@@ -4808,7 +4700,6 @@ export async function insertComicCategory(v: NewComicCategory): Promise<ComicCat
 				'b.code as category_code'
 			])
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return {
 			createdAt: r.created_at,
@@ -4841,9 +4732,11 @@ export async function insertComicCategory(v: NewComicCategory): Promise<ComicCat
 	}
 }
 
-export async function selectComicCategory(criteria: ParComicCategory): Promise<ComicCategory[]> {
+export async function selectComicCategory(
+	db: DB,
+	criteria: ParComicCategory
+): Promise<ComicCategory[]> {
 	try {
-		const db = database();
 		let query = db
 			.selectFrom('donoengine.comic_category as a')
 			.innerJoin('donoengine.category as b', 'b.id', 'a.category_id')
@@ -4907,7 +4800,6 @@ export async function selectComicCategory(criteria: ParComicCategory): Promise<C
 		if (criteria.page) query = query.offset((criteria.limit ?? 0) * (criteria.page - 1));
 
 		const r = await query.execute();
-		await db.destroy();
 
 		return r.map((r) => {
 			return {
@@ -4926,10 +4818,10 @@ export async function selectComicCategory(criteria: ParComicCategory): Promise<C
 }
 
 export async function selectComicCategoryBySID(
+	db: DB,
 	sid: ComicCategorySID
 ): Promise<ComicCategory | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.selectFrom('donoengine.comic_category as a')
 			.innerJoin('donoengine.category as b', 'b.id', 'a.category_id')
@@ -4975,7 +4867,6 @@ export async function selectComicCategoryBySID(
 					: 0
 			)
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -4993,11 +4884,11 @@ export async function selectComicCategoryBySID(
 }
 
 export async function updateComicCategoryBySID(
+	db: DB,
 	sid: ComicCategorySID,
 	v: SetComicCategory
 ): Promise<ComicCategory | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.with('a', (qc) => {
 				let query = qc
@@ -5117,7 +5008,6 @@ export async function updateComicCategoryBySID(
 				'b.code as category_code'
 			])
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -5151,9 +5041,8 @@ export async function updateComicCategoryBySID(
 	}
 }
 
-export async function deleteComicCategoryBySID(sid: ComicCategorySID): Promise<boolean> {
+export async function deleteComicCategoryBySID(db: DB, sid: ComicCategorySID): Promise<boolean> {
 	try {
-		const db = database();
 		const r = await db
 			.deleteFrom('donoengine.comic_category')
 			.where(
@@ -5190,7 +5079,6 @@ export async function deleteComicCategoryBySID(sid: ComicCategorySID): Promise<b
 					: 0
 			)
 			.executeTakeFirst();
-		await db.destroy();
 
 		return r.numDeletedRows > 0;
 	} catch (e) {
@@ -5199,9 +5087,8 @@ export async function deleteComicCategoryBySID(sid: ComicCategorySID): Promise<b
 	}
 }
 
-export async function existsComicCategoryBySID(sid: ComicCategorySID): Promise<boolean> {
+export async function existsComicCategoryBySID(db: DB, sid: ComicCategorySID): Promise<boolean> {
 	try {
-		const db = database();
 		const { exists } = await db
 			.selectNoFrom(({ exists, selectFrom }) =>
 				exists(
@@ -5243,7 +5130,6 @@ export async function existsComicCategoryBySID(sid: ComicCategorySID): Promise<b
 				).as('exists')
 			)
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return Boolean(exists);
 	} catch (e) {
@@ -5252,9 +5138,8 @@ export async function existsComicCategoryBySID(sid: ComicCategorySID): Promise<b
 	}
 }
 
-export async function countComicCategory(criteria: ParComicCategory): Promise<number> {
+export async function countComicCategory(db: DB, criteria: ParComicCategory): Promise<number> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.comic_category');
 
 		const { count } = await query
@@ -5279,9 +5164,8 @@ const NAME_ERROR_COMICTAG_PKEY = 'comic_tag_pkey';
 const NAME_ERROR_COMICTAG_FKEY0 = 'comic_tag_comic_id_fkey';
 const NAME_ERROR_COMICTAG_FKEY1 = 'comic_tag_tag_id_fkey';
 
-export async function insertComicTag(v: NewComicTag): Promise<ComicTag> {
+export async function insertComicTag(db: DB, v: NewComicTag): Promise<ComicTag> {
 	try {
-		const db = database();
 		const r = await db
 			.with('a', (qc) =>
 				qc
@@ -5328,7 +5212,6 @@ export async function insertComicTag(v: NewComicTag): Promise<ComicTag> {
 				'b.code as tag_code'
 			])
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return {
 			createdAt: r.created_at,
@@ -5361,9 +5244,8 @@ export async function insertComicTag(v: NewComicTag): Promise<ComicTag> {
 	}
 }
 
-export async function selectComicTag(criteria: ParComicTag): Promise<ComicTag[]> {
+export async function selectComicTag(db: DB, criteria: ParComicTag): Promise<ComicTag[]> {
 	try {
-		const db = database();
 		let query = db
 			.selectFrom('donoengine.comic_tag as a')
 			.innerJoin('donoengine.tag as b', 'b.id', 'a.tag_id')
@@ -5427,7 +5309,6 @@ export async function selectComicTag(criteria: ParComicTag): Promise<ComicTag[]>
 		if (criteria.page) query = query.offset((criteria.limit ?? 0) * (criteria.page - 1));
 
 		const r = await query.execute();
-		await db.destroy();
 
 		return r.map((r) => {
 			return {
@@ -5445,9 +5326,8 @@ export async function selectComicTag(criteria: ParComicTag): Promise<ComicTag[]>
 	}
 }
 
-export async function selectComicTagBySID(sid: ComicTagSID): Promise<ComicTag | undefined> {
+export async function selectComicTagBySID(db: DB, sid: ComicTagSID): Promise<ComicTag | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.selectFrom('donoengine.comic_tag as a')
 			.innerJoin('donoengine.tag as b', 'b.id', 'a.tag_id')
@@ -5493,7 +5373,6 @@ export async function selectComicTagBySID(sid: ComicTagSID): Promise<ComicTag | 
 					: 0
 			)
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -5511,11 +5390,11 @@ export async function selectComicTagBySID(sid: ComicTagSID): Promise<ComicTag | 
 }
 
 export async function updateComicTagBySID(
+	db: DB,
 	sid: ComicTagSID,
 	v: SetComicTag
 ): Promise<ComicTag | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.with('a', (qc) => {
 				let query = qc
@@ -5635,7 +5514,6 @@ export async function updateComicTagBySID(
 				'b.code as tag_code'
 			])
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -5669,9 +5547,8 @@ export async function updateComicTagBySID(
 	}
 }
 
-export async function deleteComicTagBySID(sid: ComicTagSID): Promise<boolean> {
+export async function deleteComicTagBySID(db: DB, sid: ComicTagSID): Promise<boolean> {
 	try {
-		const db = database();
 		const r = await db
 			.deleteFrom('donoengine.comic_tag')
 			.where(
@@ -5708,7 +5585,6 @@ export async function deleteComicTagBySID(sid: ComicTagSID): Promise<boolean> {
 					: 0
 			)
 			.executeTakeFirst();
-		await db.destroy();
 
 		return r.numDeletedRows > 0;
 	} catch (e) {
@@ -5717,9 +5593,8 @@ export async function deleteComicTagBySID(sid: ComicTagSID): Promise<boolean> {
 	}
 }
 
-export async function existsComicTagBySID(sid: ComicTagSID): Promise<boolean> {
+export async function existsComicTagBySID(db: DB, sid: ComicTagSID): Promise<boolean> {
 	try {
-		const db = database();
 		const { exists } = await db
 			.selectNoFrom(({ exists, selectFrom }) =>
 				exists(
@@ -5761,7 +5636,6 @@ export async function existsComicTagBySID(sid: ComicTagSID): Promise<boolean> {
 				).as('exists')
 			)
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return Boolean(exists);
 	} catch (e) {
@@ -5770,15 +5644,13 @@ export async function existsComicTagBySID(sid: ComicTagSID): Promise<boolean> {
 	}
 }
 
-export async function countComicTag(criteria: ParComicTag): Promise<number> {
+export async function countComicTag(db: DB, criteria: ParComicTag): Promise<number> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.comic_tag');
 
 		const { count } = await query
 			.select((eb) => eb.fn.countAll<number>().as('count'))
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return count;
 	} catch (e) {
@@ -5797,9 +5669,11 @@ interface ComicRelationTypeTable {
 
 const NAME_ERROR_COMICRELATIONTYPE_KEY = 'comic_relation_type_code_key';
 
-export async function insertComicRelationType(v: NewComicRelationType): Promise<ComicRelationType> {
+export async function insertComicRelationType(
+	db: DB,
+	v: NewComicRelationType
+): Promise<ComicRelationType> {
 	try {
-		const db = database();
 		const r = await db
 			.insertInto('donoengine.comic_relation_type')
 			.values({
@@ -5808,7 +5682,6 @@ export async function insertComicRelationType(v: NewComicRelationType): Promise<
 			})
 			.returningAll()
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return {
 			id: r.id,
@@ -5829,10 +5702,10 @@ export async function insertComicRelationType(v: NewComicRelationType): Promise<
 }
 
 export async function selectComicRelationType(
+	db: DB,
 	criteria: ParComicRelationType
 ): Promise<ComicRelationType[]> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.comic_relation_type');
 
 		if (criteria.orderBys)
@@ -5879,7 +5752,6 @@ export async function selectComicRelationType(
 		if (criteria.page) query = query.offset((criteria.limit ?? 0) * (criteria.page - 1));
 
 		const r = await query.selectAll().execute();
-		await db.destroy();
 
 		return r.map((r) => {
 			return {
@@ -5897,16 +5769,15 @@ export async function selectComicRelationType(
 }
 
 export async function selectComicRelationTypeByCode(
+	db: DB,
 	code: string
 ): Promise<ComicRelationType | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.selectFrom('donoengine.comic_relation_type')
 			.where('code', '=', code)
 			.selectAll()
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -5923,11 +5794,11 @@ export async function selectComicRelationTypeByCode(
 }
 
 export async function updateComicRelationTypeByCode(
+	db: DB,
 	code: string,
 	v: SetComicRelationType
 ): Promise<ComicRelationType | undefined> {
 	try {
-		const db = database();
 		let query = db
 			.updateTable('donoengine.comic_relation_type')
 			.set({
@@ -5941,7 +5812,6 @@ export async function updateComicRelationTypeByCode(
 		if (v.name) query = query.where('name', '!=', v.name);
 
 		const r = await query.returningAll().executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -5962,14 +5832,12 @@ export async function updateComicRelationTypeByCode(
 	}
 }
 
-export async function deleteComicRelationTypeByCode(code: string): Promise<boolean> {
+export async function deleteComicRelationTypeByCode(db: DB, code: string): Promise<boolean> {
 	try {
-		const db = database();
 		const r = await db
 			.deleteFrom('donoengine.comic_relation_type')
 			.where('code', '=', code)
 			.executeTakeFirst();
-		await db.destroy();
 
 		return r.numDeletedRows > 0;
 	} catch (e) {
@@ -5978,9 +5846,8 @@ export async function deleteComicRelationTypeByCode(code: string): Promise<boole
 	}
 }
 
-export async function existsComicRelationTypeByCode(code: string): Promise<boolean> {
+export async function existsComicRelationTypeByCode(db: DB, code: string): Promise<boolean> {
 	try {
-		const db = database();
 		const { exists } = await db
 			.selectNoFrom(({ exists, selectFrom }) =>
 				exists(
@@ -5990,7 +5857,6 @@ export async function existsComicRelationTypeByCode(code: string): Promise<boole
 				).as('exists')
 			)
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return Boolean(exists);
 	} catch (e) {
@@ -5999,15 +5865,16 @@ export async function existsComicRelationTypeByCode(code: string): Promise<boole
 	}
 }
 
-export async function countComicRelationType(criteria: ParComicRelationType): Promise<number> {
+export async function countComicRelationType(
+	db: DB,
+	criteria: ParComicRelationType
+): Promise<number> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.comic_relation_type');
 
 		const { count } = await query
 			.select((eb) => eb.fn.countAll<number>().as('count'))
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return count;
 	} catch (e) {
@@ -6030,9 +5897,8 @@ const NAME_ERROR_COMICRELATION_FKEY1 = 'comic_relation_parent_id_fkey';
 const NAME_ERROR_COMICRELATION_FKEY2 = 'comic_relation_child_id_fkey';
 const NAME_ERROR_COMICRELATION_CHECK = 'comic_relation_parent_id_child_id_check';
 
-export async function insertComicRelation(v: NewComicRelation): Promise<ComicRelation> {
+export async function insertComicRelation(db: DB, v: NewComicRelation): Promise<ComicRelation> {
 	try {
-		const db = database();
 		const query = async function (qc: QueryCreator<Database>) {
 			return await qc
 				.with('a', (qc) =>
@@ -6098,8 +5964,6 @@ export async function insertComicRelation(v: NewComicRelation): Promise<ComicRel
 				throw new GenericError('comic relation loop detected');
 			}
 
-			await db.destroy();
-
 			return {
 				createdAt: r.created_at,
 				updatedAt: r.updated_at,
@@ -6139,9 +6003,11 @@ export async function insertComicRelation(v: NewComicRelation): Promise<ComicRel
 	}
 }
 
-export async function selectComicRelation(criteria: ParComicRelation): Promise<ComicRelation[]> {
+export async function selectComicRelation(
+	db: DB,
+	criteria: ParComicRelation
+): Promise<ComicRelation[]> {
 	try {
-		const db = database();
 		let query = db
 			.selectFrom('donoengine.comic_relation as a')
 			.innerJoin('donoengine.comic as b', 'b.id', 'a.child_id')
@@ -6205,7 +6071,6 @@ export async function selectComicRelation(criteria: ParComicRelation): Promise<C
 		if (criteria.page) query = query.offset((criteria.limit ?? 0) * (criteria.page - 1));
 
 		const r = await query.execute();
-		await db.destroy();
 
 		return r.map((r) => {
 			return {
@@ -6224,10 +6089,10 @@ export async function selectComicRelation(criteria: ParComicRelation): Promise<C
 }
 
 export async function selectComicRelationBySID(
+	db: DB,
 	sid: ComicRelationSID
 ): Promise<ComicRelation | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.selectFrom('donoengine.comic_relation as a')
 			.innerJoin('donoengine.comic as b', 'b.id', 'a.child_id')
@@ -6273,7 +6138,6 @@ export async function selectComicRelationBySID(
 					: 0
 			)
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -6291,11 +6155,11 @@ export async function selectComicRelationBySID(
 }
 
 export async function updateComicRelationBySID(
+	db: DB,
 	sid: ComicRelationSID,
 	v: SetComicRelation
 ): Promise<ComicRelation | undefined> {
 	try {
-		const db = database();
 		const query = async function (qc: QueryCreator<Database>) {
 			return await qc
 				.with('a', (qc) => {
@@ -6437,8 +6301,6 @@ export async function updateComicRelationBySID(
 					throw new GenericError('comic relation loop detected');
 				}
 
-				await db.destroy();
-
 				return {
 					createdAt: r.created_at,
 					updatedAt: r.updated_at,
@@ -6479,9 +6341,8 @@ export async function updateComicRelationBySID(
 	}
 }
 
-export async function deleteComicRelationBySID(sid: ComicRelationSID): Promise<boolean> {
+export async function deleteComicRelationBySID(db: DB, sid: ComicRelationSID): Promise<boolean> {
 	try {
-		const db = database();
 		const r = await db
 			.deleteFrom('donoengine.comic_relation')
 			.where(
@@ -6518,7 +6379,6 @@ export async function deleteComicRelationBySID(sid: ComicRelationSID): Promise<b
 					: 0
 			)
 			.executeTakeFirst();
-		await db.destroy();
 
 		return r.numDeletedRows > 0;
 	} catch (e) {
@@ -6527,9 +6387,8 @@ export async function deleteComicRelationBySID(sid: ComicRelationSID): Promise<b
 	}
 }
 
-export async function existsComicRelationBySID(sid: ComicRelationSID): Promise<boolean> {
+export async function existsComicRelationBySID(db: DB, sid: ComicRelationSID): Promise<boolean> {
 	try {
-		const db = database();
 		const { exists } = await db
 			.selectNoFrom(({ exists, selectFrom }) =>
 				exists(
@@ -6571,7 +6430,6 @@ export async function existsComicRelationBySID(sid: ComicRelationSID): Promise<b
 				).as('exists')
 			)
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return Boolean(exists);
 	} catch (e) {
@@ -6580,15 +6438,13 @@ export async function existsComicRelationBySID(sid: ComicRelationSID): Promise<b
 	}
 }
 
-export async function countComicRelation(criteria: ParComicRelation): Promise<number> {
+export async function countComicRelation(db: DB, criteria: ParComicRelation): Promise<number> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.comic_relation');
 
 		const { count } = await query
 			.select((eb) => eb.fn.countAll<number>().as('count'))
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return count;
 	} catch (e) {
@@ -6611,9 +6467,8 @@ interface ComicChapterTable {
 const NAME_ERROR_COMICCHAPTER_KEY = 'comic_chapter_comic_id_chapter_version_key';
 const NAME_ERROR_COMICCHAPTER_FKEY = 'comic_chapter_comic_id_fkey';
 
-export async function insertComicChapter(v: NewComicChapter): Promise<ComicChapter> {
+export async function insertComicChapter(db: DB, v: NewComicChapter): Promise<ComicChapter> {
 	try {
-		const db = database();
 		const r = await db
 			.insertInto('donoengine.comic_chapter')
 			.values({
@@ -6632,7 +6487,6 @@ export async function insertComicChapter(v: NewComicChapter): Promise<ComicChapt
 			})
 			.returningAll()
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return {
 			id: r.id,
@@ -6664,9 +6518,11 @@ export async function insertComicChapter(v: NewComicChapter): Promise<ComicChapt
 	}
 }
 
-export async function selectComicChapter(criteria: ParComicChapter): Promise<ComicChapter[]> {
+export async function selectComicChapter(
+	db: DB,
+	criteria: ParComicChapter
+): Promise<ComicChapter[]> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.comic_chapter');
 
 		if (criteria.comicIDs && criteria.comicIDs.length > 0)
@@ -6722,7 +6578,6 @@ export async function selectComicChapter(criteria: ParComicChapter): Promise<Com
 		if (criteria.page) query = query.offset(criteria.limit ?? 0 * (criteria.page - 1));
 
 		const r = await query.selectAll().execute();
-		await db.destroy();
 
 		return r.map((r) => {
 			return {
@@ -6743,10 +6598,10 @@ export async function selectComicChapter(criteria: ParComicChapter): Promise<Com
 }
 
 export async function selectComicChapterBySID(
+	db: DB,
 	sid: ComicChapterSID
 ): Promise<ComicChapter | undefined> {
 	try {
-		const db = database();
 		const r = await db
 			.selectFrom('donoengine.comic_chapter')
 			.where(
@@ -6764,7 +6619,6 @@ export async function selectComicChapterBySID(
 			.where('version', 'is distinct from', sid.version)
 			.selectAll()
 			.executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -6784,11 +6638,11 @@ export async function selectComicChapterBySID(
 }
 
 export async function updateComicChapterBySID(
+	db: DB,
 	sid: ComicChapterSID,
 	v: SetComicChapter
 ): Promise<ComicChapter | undefined> {
 	try {
-		const db = database();
 		let query = db
 			.updateTable('donoengine.comic_chapter')
 			.set({
@@ -6840,7 +6694,6 @@ export async function updateComicChapterBySID(
 			query = query.where('released_at', 'is not distinct from', v.releasedAt);
 
 		const r = await query.returningAll().executeTakeFirst();
-		await db.destroy();
 
 		if (r)
 			return {
@@ -6873,9 +6726,8 @@ export async function updateComicChapterBySID(
 	}
 }
 
-export async function deleteComicChapterBySID(sid: ComicChapterSID): Promise<boolean> {
+export async function deleteComicChapterBySID(db: DB, sid: ComicChapterSID): Promise<boolean> {
 	try {
-		const db = database();
 		const r = await db
 			.deleteFrom('donoengine.comic_chapter')
 			.where(
@@ -6892,7 +6744,6 @@ export async function deleteComicChapterBySID(sid: ComicChapterSID): Promise<boo
 			.where('chapter', '=', sid.chapter)
 			.where('version', 'is distinct from', sid.version)
 			.executeTakeFirst();
-		await db.destroy();
 
 		return r.numDeletedRows > 0;
 	} catch (e) {
@@ -6901,9 +6752,8 @@ export async function deleteComicChapterBySID(sid: ComicChapterSID): Promise<boo
 	}
 }
 
-export async function existsComicChapterBySID(sid: ComicChapterSID): Promise<boolean> {
+export async function existsComicChapterBySID(db: DB, sid: ComicChapterSID): Promise<boolean> {
 	try {
-		const db = database();
 		const { exists } = await db
 			.selectNoFrom(({ exists, selectFrom }) =>
 				exists(
@@ -6925,7 +6775,6 @@ export async function existsComicChapterBySID(sid: ComicChapterSID): Promise<boo
 				).as('exists')
 			)
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return Boolean(exists);
 	} catch (e) {
@@ -6934,15 +6783,13 @@ export async function existsComicChapterBySID(sid: ComicChapterSID): Promise<boo
 	}
 }
 
-export async function countComicChapter(criteria: ParComicChapter): Promise<number> {
+export async function countComicChapter(db: DB, criteria: ParComicChapter): Promise<number> {
 	try {
-		const db = database();
 		let query = db.selectFrom('donoengine.comic_chapter');
 
 		const { count } = await query
 			.select((eb) => eb.fn.countAll<number>().as('count'))
 			.executeTakeFirstOrThrow();
-		await db.destroy();
 
 		return count;
 	} catch (e) {

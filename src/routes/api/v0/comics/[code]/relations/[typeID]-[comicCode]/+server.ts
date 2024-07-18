@@ -8,15 +8,18 @@ import { GenericError, NotFoundError, PermissionError } from '$lib/server/model'
 import type { SetComicRelation } from '$lib/server/model';
 import { capitalPeriod, formDataNumber, headerBearerToken, response500 } from '$lib/server/helper';
 import { AuthError, AuthErrorKind, parseAccessToken } from '$lib/server/auth';
+import { database } from '$lib/server/database';
 
 export const GET: RequestHandler = async ({ params }) => {
+	const db = database();
+
 	let reshd: { [h: string]: string } = {
 		'Content-Type': 'application/json; charset=utf-8',
 		'X-Content-Type-Options': 'nosniff'
 	};
 
 	try {
-		const r = await getComicRelationBySID({
+		const r = await getComicRelationBySID(db, {
 			parentCode: params.code,
 			typeID: Number(params.typeID),
 			childCode: params.comicCode
@@ -39,10 +42,14 @@ export const GET: RequestHandler = async ({ params }) => {
 		}
 
 		return new Response(JSON.stringify(r), { headers: reshd, status: Number(r.error.status) });
+	} finally {
+		await db.destroy();
 	}
 };
 
 export const PATCH: RequestHandler = async ({ params, request }) => {
+	const db = database();
+
 	let reshd: { [h: string]: string } = {
 		'Content-Type': 'application/json; charset=utf-8',
 		'X-Content-Type-Options': 'nosniff'
@@ -70,6 +77,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 		}
 
 		const r = await updateComicRelationBySID(
+			db,
 			{
 				parentCode: params.code,
 				typeID: Number(params.typeID),
@@ -115,10 +123,14 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 		}
 
 		return new Response(JSON.stringify(r), { headers: reshd, status: Number(r.error.status) });
+	} finally {
+		await db.destroy();
 	}
 };
 
 export const DELETE: RequestHandler = async ({ params, request }) => {
+	const db = database();
+
 	let reshd: { [h: string]: string } = {
 		'Content-Type': 'application/json; charset=utf-8',
 		'X-Content-Type-Options': 'nosniff'
@@ -128,6 +140,7 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 		const a = await parseAccessToken(headerBearerToken(request.headers.get('Authorization')));
 
 		await deleteComicRelationBySID(
+			db,
 			{
 				parentCode: params.code,
 				typeID: Number(params.typeID),
@@ -169,5 +182,7 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 		}
 
 		return new Response(JSON.stringify(r), { headers: reshd, status: Number(r.error.status) });
+	} finally {
+		await db.destroy();
 	}
 };

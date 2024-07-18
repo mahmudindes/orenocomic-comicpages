@@ -8,8 +8,11 @@ import { GenericError, NotFoundError, PermissionError } from '$lib/server/model'
 import type { SetComicChapter } from '$lib/server/model';
 import { capitalPeriod, formDataDate, headerBearerToken, response500 } from '$lib/server/helper';
 import { AuthError, AuthErrorKind, parseAccessToken } from '$lib/server/auth';
+import { database } from '$lib/server/database';
 
 export const GET: RequestHandler = async ({ params }) => {
+	const db = database();
+
 	const cv = params.cv.split('+', 2);
 
 	let reshd: { [h: string]: string } = {
@@ -18,7 +21,7 @@ export const GET: RequestHandler = async ({ params }) => {
 	};
 
 	try {
-		const r = await getComicChapterBySID({
+		const r = await getComicChapterBySID(db, {
 			comicCode: params.code,
 			chapter: decodeURIComponent(cv[0]),
 			version: cv[1] ? decodeURIComponent(cv[1]) : null
@@ -41,10 +44,14 @@ export const GET: RequestHandler = async ({ params }) => {
 		}
 
 		return new Response(JSON.stringify(r), { headers: reshd, status: Number(r.error.status) });
+	} finally {
+		await db.destroy();
 	}
 };
 
 export const PATCH: RequestHandler = async ({ params, request }) => {
+	const db = database();
+
 	const cv = params.cv.split('+', 2);
 
 	let reshd: { [h: string]: string } = {
@@ -74,6 +81,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 		}
 
 		const r = await updateComicChapterBySID(
+			db,
 			{
 				comicCode: params.code,
 				chapter: decodeURIComponent(cv[0]),
@@ -122,10 +130,14 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 		}
 
 		return new Response(JSON.stringify(r), { headers: reshd, status: Number(r.error.status) });
+	} finally {
+		await db.destroy();
 	}
 };
 
 export const DELETE: RequestHandler = async ({ params, request }) => {
+	const db = database();
+
 	const cv = params.cv.split('+', 2);
 
 	let reshd: { [h: string]: string } = {
@@ -137,6 +149,7 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 		const a = await parseAccessToken(headerBearerToken(request.headers.get('Authorization')));
 
 		await deleteComicChapterBySID(
+			db,
 			{
 				comicCode: params.code,
 				chapter: decodeURIComponent(cv[0]),
@@ -178,5 +191,7 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 		}
 
 		return new Response(JSON.stringify(r), { headers: reshd, status: Number(r.error.status) });
+	} finally {
+		await db.destroy();
 	}
 };

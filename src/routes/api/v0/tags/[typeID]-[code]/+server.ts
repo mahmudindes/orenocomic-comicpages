@@ -4,15 +4,18 @@ import { GenericError, NotFoundError, PermissionError } from '$lib/server/model'
 import type { SetTag } from '$lib/server/model';
 import { capitalPeriod, formDataNumber, headerBearerToken, response500 } from '$lib/server/helper';
 import { AuthError, AuthErrorKind, parseAccessToken } from '$lib/server/auth';
+import { database } from '$lib/server/database';
 
 export const GET: RequestHandler = async ({ params }) => {
+	const db = database();
+
 	let reshd: { [h: string]: string } = {
 		'Content-Type': 'application/json; charset=utf-8',
 		'X-Content-Type-Options': 'nosniff'
 	};
 
 	try {
-		const r = await getTagBySID({
+		const r = await getTagBySID(db, {
 			typeID: Number(params.typeID),
 			code: params.code
 		});
@@ -34,10 +37,14 @@ export const GET: RequestHandler = async ({ params }) => {
 		}
 
 		return new Response(JSON.stringify(r), { headers: reshd, status: Number(r.error.status) });
+	} finally {
+		await db.destroy();
 	}
 };
 
 export const PATCH: RequestHandler = async ({ params, request }) => {
+	const db = database();
+
 	let reshd: { [h: string]: string } = {
 		'Content-Type': 'application/json; charset=utf-8',
 		'X-Content-Type-Options': 'nosniff'
@@ -61,6 +68,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 		}
 
 		const r = await updateTagBySID(
+			db,
 			{
 				typeID: Number(params.typeID),
 				code: params.code
@@ -105,10 +113,14 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 		}
 
 		return new Response(JSON.stringify(r), { headers: reshd, status: Number(r.error.status) });
+	} finally {
+		await db.destroy();
 	}
 };
 
 export const DELETE: RequestHandler = async ({ params, request }) => {
+	const db = database();
+
 	let reshd: { [h: string]: string } = {
 		'Content-Type': 'application/json; charset=utf-8',
 		'X-Content-Type-Options': 'nosniff'
@@ -118,6 +130,7 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 		const a = await parseAccessToken(headerBearerToken(request.headers.get('Authorization')));
 
 		await deleteTagBySID(
+			db,
 			{
 				typeID: Number(params.typeID),
 				code: params.code
@@ -158,5 +171,7 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 		}
 
 		return new Response(JSON.stringify(r), { headers: reshd, status: Number(r.error.status) });
+	} finally {
+		await db.destroy();
 	}
 };

@@ -11,8 +11,11 @@ import {
 import { GenericError, PermissionError } from '$lib/server/model';
 import type { NewComic } from '$lib/server/model';
 import { AuthError, AuthErrorKind, parseAccessToken } from '$lib/server/auth';
+import { database } from '$lib/server/database';
 
 export const GET: RequestHandler = async ({ url }) => {
+	const db = database();
+
 	let reshd: { [h: string]: string } = {
 		'Content-Type': 'application/json; charset=utf-8',
 		'X-Content-Type-Options': 'nosniff'
@@ -40,8 +43,8 @@ export const GET: RequestHandler = async ({ url }) => {
 
 		const paramLinks = { comicExternals, orderBys, page, limit };
 
-		const totalCount = await countComic(paramLinks);
-		const r = await listComic(paramLinks);
+		const totalCount = await countComic(db, paramLinks);
+		const r = await listComic(db, paramLinks);
 
 		reshd['X-Total-Count'] = String(totalCount);
 		reshd['X-Pagination-Limit'] = String(limit);
@@ -59,10 +62,14 @@ export const GET: RequestHandler = async ({ url }) => {
 		}
 
 		return new Response(JSON.stringify(r), { headers: reshd, status: Number(r.error.status) });
+	} finally {
+		await db.destroy();
 	}
 };
 
 export const POST: RequestHandler = async ({ request }) => {
+	const db = database();
+
 	let reshd: { [h: string]: string } = {
 		'Content-Type': 'application/json; charset=utf-8',
 		'X-Content-Type-Options': 'nosniff'
@@ -93,7 +100,7 @@ export const POST: RequestHandler = async ({ request }) => {
 				break;
 		}
 
-		const r = await addComic(v, a);
+		const r = await addComic(db, v, a);
 
 		reshd['Location'] = new URL(request.url).pathname + '/' + r.code;
 		return new Response(JSON.stringify(r), { headers: reshd, status: 201 });
@@ -126,5 +133,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 
 		return new Response(JSON.stringify(r), { headers: reshd, status: Number(r.error.status) });
+	} finally {
+		await db.destroy();
 	}
 };

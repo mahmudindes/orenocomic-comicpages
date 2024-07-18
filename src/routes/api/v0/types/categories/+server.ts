@@ -4,8 +4,11 @@ import { capitalPeriod, headerBearerToken, queryOrderBys, response500 } from '$l
 import { GenericError, PermissionError } from '$lib/server/model';
 import type { NewCategoryType } from '$lib/server/model';
 import { AuthError, AuthErrorKind, parseAccessToken } from '$lib/server/auth';
+import { database } from '$lib/server/database';
 
 export const GET: RequestHandler = async ({ url }) => {
+	const db = database();
+
 	let reshd: { [h: string]: string } = {
 		'Content-Type': 'application/json; charset=utf-8',
 		'X-Content-Type-Options': 'nosniff'
@@ -18,8 +21,8 @@ export const GET: RequestHandler = async ({ url }) => {
 
 		const paramLinks = { orderBys, page, limit };
 
-		const totalCount = await countCategoryType(paramLinks);
-		const r = await listCategoryType(paramLinks);
+		const totalCount = await countCategoryType(db, paramLinks);
+		const r = await listCategoryType(db, paramLinks);
 
 		reshd['X-Total-Count'] = String(totalCount);
 		reshd['X-Pagination-Limit'] = String(limit);
@@ -37,10 +40,14 @@ export const GET: RequestHandler = async ({ url }) => {
 		}
 
 		return new Response(JSON.stringify(r), { headers: reshd, status: Number(r.error.status) });
+	} finally {
+		await db.destroy();
 	}
 };
 
 export const POST: RequestHandler = async ({ request }) => {
+	const db = database();
+
 	let reshd: { [h: string]: string } = {
 		'Content-Type': 'application/json; charset=utf-8',
 		'X-Content-Type-Options': 'nosniff'
@@ -64,7 +71,7 @@ export const POST: RequestHandler = async ({ request }) => {
 				break;
 		}
 
-		const r = await addCategoryType(v, a);
+		const r = await addCategoryType(db, v, a);
 
 		reshd['Location'] = new URL(request.url).pathname + '/' + r.code;
 		return new Response(JSON.stringify(r), { headers: reshd, status: 201 });
@@ -97,5 +104,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 
 		return new Response(JSON.stringify(r), { headers: reshd, status: Number(r.error.status) });
+	} finally {
+		await db.destroy();
 	}
 };

@@ -14,15 +14,18 @@ import {
 	response500
 } from '$lib/server/helper';
 import { AuthError, AuthErrorKind, parseAccessToken } from '$lib/server/auth';
+import { database } from '$lib/server/database';
 
 export const GET: RequestHandler = async ({ params }) => {
+	const db = database();
+
 	let reshd: { [h: string]: string } = {
 		'Content-Type': 'application/json; charset=utf-8',
 		'X-Content-Type-Options': 'nosniff'
 	};
 
 	try {
-		const r = await getComicSynopsisBySID({ comicCode: params.code, rid: params.rid });
+		const r = await getComicSynopsisBySID(db, { comicCode: params.code, rid: params.rid });
 
 		return new Response(JSON.stringify(r), { headers: reshd });
 	} catch (e) {
@@ -41,10 +44,14 @@ export const GET: RequestHandler = async ({ params }) => {
 		}
 
 		return new Response(JSON.stringify(r), { headers: reshd, status: Number(r.error.status) });
+	} finally {
+		await db.destroy();
 	}
 };
 
 export const PATCH: RequestHandler = async ({ params, request }) => {
+	const db = database();
+
 	let reshd: { [h: string]: string } = {
 		'Content-Type': 'application/json; charset=utf-8',
 		'X-Content-Type-Options': 'nosniff'
@@ -73,7 +80,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 				break;
 		}
 
-		const r = await updateComicSynopsisBySID({ comicCode: params.code, rid: params.rid }, v, a);
+		const r = await updateComicSynopsisBySID(db, { comicCode: params.code, rid: params.rid }, v, a);
 
 		if (!r) return new Response(undefined, { status: 204 });
 
@@ -111,10 +118,14 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 		}
 
 		return new Response(JSON.stringify(r), { headers: reshd, status: Number(r.error.status) });
+	} finally {
+		await db.destroy();
 	}
 };
 
 export const DELETE: RequestHandler = async ({ params, request }) => {
+	const db = database();
+
 	let reshd: { [h: string]: string } = {
 		'Content-Type': 'application/json; charset=utf-8',
 		'X-Content-Type-Options': 'nosniff'
@@ -123,7 +134,7 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 	try {
 		const a = await parseAccessToken(headerBearerToken(request.headers.get('Authorization')));
 
-		await deleteComicSynopsisBySID({ comicCode: params.code, rid: params.rid }, a);
+		await deleteComicSynopsisBySID(db, { comicCode: params.code, rid: params.rid }, a);
 
 		return new Response(undefined, { status: 204 });
 	} catch (e) {
@@ -158,5 +169,7 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 		}
 
 		return new Response(JSON.stringify(r), { headers: reshd, status: Number(r.error.status) });
+	} finally {
+		await db.destroy();
 	}
 };

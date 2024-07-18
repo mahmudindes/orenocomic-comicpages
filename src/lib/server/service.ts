@@ -119,7 +119,8 @@ import {
 	existsComicChapterBySID as dbexistsComicChapterBySID,
 	countComicChapter as dbcountComicChapter
 } from './database';
-import { GenericError, NotFoundError, PermissionError } from './model';
+import type { DB } from './database';
+import { NotFoundError, PermissionError } from './model';
 import type {
 	Language,
 	NewLanguage,
@@ -201,16 +202,16 @@ import type {
 import { tokenPermissionKey } from './auth';
 import type { AccessToken } from './auth';
 
-export async function addLanguage(v: NewLanguage, a?: AccessToken): Promise<Language> {
+export async function addLanguage(db: DB, v: NewLanguage, a?: AccessToken): Promise<Language> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to add language');
 	}
 
-	return await insertLanguage(v);
+	return await insertLanguage(db, v);
 }
 
-export async function getLanguageByIETF(ietf: string): Promise<Language> {
-	const r = await selectLanguageByIETF(ietf);
+export async function getLanguageByIETF(db: DB, ietf: string): Promise<Language> {
+	const r = await selectLanguageByIETF(db, ietf);
 
 	if (!r) throw new NotFoundError('language does not exist');
 
@@ -218,6 +219,7 @@ export async function getLanguageByIETF(ietf: string): Promise<Language> {
 }
 
 export async function updateLanguageByIETF(
+	db: DB,
 	ietf: string,
 	v: SetLanguage,
 	a?: AccessToken
@@ -226,41 +228,41 @@ export async function updateLanguageByIETF(
 		throw new PermissionError('missing admin permission to update language');
 	}
 
-	if (!(await dbexistsLanguageByIETF(ietf))) {
+	if (!(await dbexistsLanguageByIETF(db, ietf))) {
 		throw new NotFoundError('language does not exist');
 	}
 
-	return await dbupdateLanguageByIETF(ietf, v);
+	return await dbupdateLanguageByIETF(db, ietf, v);
 }
 
-export async function deleteLanguageByIETF(ietf: string, a?: AccessToken): Promise<void> {
+export async function deleteLanguageByIETF(db: DB, ietf: string, a?: AccessToken): Promise<void> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to delete language');
 	}
 
-	if (!(await dbdeleteLanguageByIETF(ietf))) {
+	if (!(await dbdeleteLanguageByIETF(db, ietf))) {
 		throw new NotFoundError('language does not exist');
 	}
 }
 
-export async function listLanguage(params: ParLanguage): Promise<Language[]> {
-	return await selectLanguage(params);
+export async function listLanguage(db: DB, params: ParLanguage): Promise<Language[]> {
+	return await selectLanguage(db, params);
 }
 
-export async function countLanguage(params: ParLanguage): Promise<number> {
-	return await dbcountLanguage(params);
+export async function countLanguage(db: DB, params: ParLanguage): Promise<number> {
+	return await dbcountLanguage(db, params);
 }
 
-export async function addWebsite(v: NewWebsite, a?: AccessToken): Promise<Website> {
+export async function addWebsite(db: DB, v: NewWebsite, a?: AccessToken): Promise<Website> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to add website');
 	}
 
-	return await insertWebsite(v);
+	return await insertWebsite(db, v);
 }
 
-export async function getWebsiteByDomain(domain: string): Promise<Website> {
-	const r = await selectWebsiteByDomain(domain);
+export async function getWebsiteByDomain(db: DB, domain: string): Promise<Website> {
+	const r = await selectWebsiteByDomain(db, domain);
 
 	if (!r) throw new NotFoundError('website does not exist');
 
@@ -268,6 +270,7 @@ export async function getWebsiteByDomain(domain: string): Promise<Website> {
 }
 
 export async function updateWebsiteByDomain(
+	db: DB,
 	domain: string,
 	v: SetWebsite,
 	a?: AccessToken
@@ -276,41 +279,49 @@ export async function updateWebsiteByDomain(
 		throw new PermissionError('missing admin permission to update website');
 	}
 
-	if (!(await dbexistsWebsiteByDomain(domain))) {
+	if (!(await dbexistsWebsiteByDomain(db, domain))) {
 		throw new NotFoundError('website does not exist');
 	}
 
-	return await dbupdateWebsiteByDomain(domain, v);
+	return await dbupdateWebsiteByDomain(db, domain, v);
 }
 
-export async function deleteWebsiteByDomain(domain: string, a?: AccessToken): Promise<void> {
+export async function deleteWebsiteByDomain(
+	db: DB,
+	domain: string,
+	a?: AccessToken
+): Promise<void> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to delete website');
 	}
 
-	if (!(await dbdeleteWebsiteByDomain(domain))) {
+	if (!(await dbdeleteWebsiteByDomain(db, domain))) {
 		throw new NotFoundError('website does not exist');
 	}
 }
 
-export async function listWebsite(params: ParWebsite): Promise<Website[]> {
-	return await selectWebsite(params);
+export async function listWebsite(db: DB, params: ParWebsite): Promise<Website[]> {
+	return await selectWebsite(db, params);
 }
 
-export async function countWebsite(params: ParWebsite): Promise<number> {
-	return await dbcountWebsite(params);
+export async function countWebsite(db: DB, params: ParWebsite): Promise<number> {
+	return await dbcountWebsite(db, params);
 }
 
-export async function addCategoryType(v: NewCategoryType, a?: AccessToken): Promise<CategoryType> {
+export async function addCategoryType(
+	db: DB,
+	v: NewCategoryType,
+	a?: AccessToken
+): Promise<CategoryType> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to add category type');
 	}
 
-	return await insertCategoryType(v);
+	return await insertCategoryType(db, v);
 }
 
-export async function getCategoryTypeByCode(code: string): Promise<CategoryType> {
-	const r = await selectCategoryTypeByCode(code);
+export async function getCategoryTypeByCode(db: DB, code: string): Promise<CategoryType> {
+	const r = await selectCategoryTypeByCode(db, code);
 
 	if (!r) throw new NotFoundError('category type does not exist');
 
@@ -318,6 +329,7 @@ export async function getCategoryTypeByCode(code: string): Promise<CategoryType>
 }
 
 export async function updateCategoryTypeByCode(
+	db: DB,
 	code: string,
 	v: SetCategoryType,
 	a?: AccessToken
@@ -326,41 +338,45 @@ export async function updateCategoryTypeByCode(
 		throw new PermissionError('missing admin permission to update category type');
 	}
 
-	if (!(await dbexistsCategoryTypeByCode(code))) {
+	if (!(await dbexistsCategoryTypeByCode(db, code))) {
 		throw new NotFoundError('category type does not exist');
 	}
 
-	return await dbupdateCategoryTypeByCode(code, v);
+	return await dbupdateCategoryTypeByCode(db, code, v);
 }
 
-export async function deleteCategoryTypeByCode(code: string, a?: AccessToken): Promise<void> {
+export async function deleteCategoryTypeByCode(
+	db: DB,
+	code: string,
+	a?: AccessToken
+): Promise<void> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to delete category type');
 	}
 
-	if (!(await dbdeleteCategoryTypeByCode(code))) {
+	if (!(await dbdeleteCategoryTypeByCode(db, code))) {
 		throw new NotFoundError('category type does not exist');
 	}
 }
 
-export async function listCategoryType(params: ParCategoryType): Promise<CategoryType[]> {
-	return await selectCategoryType(params);
+export async function listCategoryType(db: DB, params: ParCategoryType): Promise<CategoryType[]> {
+	return await selectCategoryType(db, params);
 }
 
-export async function countCategoryType(params: ParCategoryType): Promise<number> {
-	return await dbcountCategoryType(params);
+export async function countCategoryType(db: DB, params: ParCategoryType): Promise<number> {
+	return await dbcountCategoryType(db, params);
 }
 
-export async function addCategory(v: NewCategory, a?: AccessToken): Promise<Category> {
+export async function addCategory(db: DB, v: NewCategory, a?: AccessToken): Promise<Category> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to add category');
 	}
 
-	return await insertCategory(v);
+	return await insertCategory(db, v);
 }
 
-export async function getCategoryBySID(sid: CategorySID): Promise<Category> {
-	const r = await selectCategoryBySID(sid);
+export async function getCategoryBySID(db: DB, sid: CategorySID): Promise<Category> {
+	const r = await selectCategoryBySID(db, sid);
 
 	if (!r) throw new NotFoundError('category does not exist');
 
@@ -368,6 +384,7 @@ export async function getCategoryBySID(sid: CategorySID): Promise<Category> {
 }
 
 export async function updateCategoryBySID(
+	db: DB,
 	sid: CategorySID,
 	v: SetCategory,
 	a?: AccessToken
@@ -376,32 +393,37 @@ export async function updateCategoryBySID(
 		throw new PermissionError('missing admin permission to update category');
 	}
 
-	if (!(await dbexistsCategoryBySID(sid))) {
+	if (!(await dbexistsCategoryBySID(db, sid))) {
 		throw new NotFoundError('category does not exist');
 	}
 
-	return await dbupdateCategoryBySID(sid, v);
+	return await dbupdateCategoryBySID(db, sid, v);
 }
 
-export async function deleteCategoryBySID(sid: CategorySID, a?: AccessToken): Promise<void> {
+export async function deleteCategoryBySID(
+	db: DB,
+	sid: CategorySID,
+	a?: AccessToken
+): Promise<void> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to delete category');
 	}
 
-	if (!(await dbdeleteCategoryBySID(sid))) {
+	if (!(await dbdeleteCategoryBySID(db, sid))) {
 		throw new NotFoundError('category does not exist');
 	}
 }
 
-export async function listCategory(params: ParCategory): Promise<Category[]> {
-	return await selectCategory(params);
+export async function listCategory(db: DB, params: ParCategory): Promise<Category[]> {
+	return await selectCategory(db, params);
 }
 
-export async function countCategory(params: ParCategory): Promise<number> {
-	return await dbcountCategory(params);
+export async function countCategory(db: DB, params: ParCategory): Promise<number> {
+	return await dbcountCategory(db, params);
 }
 
 export async function addCategoryRelation(
+	db: DB,
 	v: NewCategoryRelation,
 	a?: AccessToken
 ): Promise<CategoryRelation> {
@@ -409,13 +431,14 @@ export async function addCategoryRelation(
 		throw new PermissionError('missing admin permission to add category relation');
 	}
 
-	return await insertCategoryRelation(v);
+	return await insertCategoryRelation(db, v);
 }
 
 export async function getCategoryRelationBySID(
+	db: DB,
 	sid: CategoryRelationSID
 ): Promise<CategoryRelation> {
-	const r = await selectCategoryRelationBySID(sid);
+	const r = await selectCategoryRelationBySID(db, sid);
 
 	if (!r) throw new NotFoundError('category relation does not exist');
 
@@ -423,6 +446,7 @@ export async function getCategoryRelationBySID(
 }
 
 export async function updateCategoryRelationBySID(
+	db: DB,
 	sid: CategoryRelationSID,
 	v: SetCategoryRelation,
 	a?: AccessToken
@@ -431,14 +455,15 @@ export async function updateCategoryRelationBySID(
 		throw new PermissionError('missing admin permission to update category relation');
 	}
 
-	if (!(await dbexistsCategoryRelationBySID(sid))) {
+	if (!(await dbexistsCategoryRelationBySID(db, sid))) {
 		throw new NotFoundError('category relation does not exist');
 	}
 
-	return await dbupdateCategoryRelationBySID(sid, v);
+	return await dbupdateCategoryRelationBySID(db, sid, v);
 }
 
 export async function deleteCategoryRelationBySID(
+	db: DB,
 	sid: CategoryRelationSID,
 	a?: AccessToken
 ): Promise<void> {
@@ -446,31 +471,32 @@ export async function deleteCategoryRelationBySID(
 		throw new PermissionError('missing admin permission to delete category relation');
 	}
 
-	if (!(await dbdeleteCategoryRelationBySID(sid))) {
+	if (!(await dbdeleteCategoryRelationBySID(db, sid))) {
 		throw new NotFoundError('category relation does not exist');
 	}
 }
 
 export async function listCategoryRelation(
+	db: DB,
 	params: ParCategoryRelation
 ): Promise<CategoryRelation[]> {
-	return await selectCategoryRelation(params);
+	return await selectCategoryRelation(db, params);
 }
 
-export async function countCategoryRelation(params: ParCategoryRelation): Promise<number> {
-	return await dbcountCategoryRelation(params);
+export async function countCategoryRelation(db: DB, params: ParCategoryRelation): Promise<number> {
+	return await dbcountCategoryRelation(db, params);
 }
 
-export async function addTagType(v: NewTagType, a?: AccessToken): Promise<TagType> {
+export async function addTagType(db: DB, v: NewTagType, a?: AccessToken): Promise<TagType> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to add tag type');
 	}
 
-	return await insertTagType(v);
+	return await insertTagType(db, v);
 }
 
-export async function getTagTypeByCode(code: string): Promise<TagType> {
-	const r = await selectTagTypeByCode(code);
+export async function getTagTypeByCode(db: DB, code: string): Promise<TagType> {
+	const r = await selectTagTypeByCode(db, code);
 
 	if (!r) throw new NotFoundError('tag type does not exist');
 
@@ -478,6 +504,7 @@ export async function getTagTypeByCode(code: string): Promise<TagType> {
 }
 
 export async function updateTagTypeByCode(
+	db: DB,
 	code: string,
 	v: SetTagType,
 	a?: AccessToken
@@ -486,41 +513,41 @@ export async function updateTagTypeByCode(
 		throw new PermissionError('missing admin permission to update tag type');
 	}
 
-	if (!(await dbexistsTagTypeByCode(code))) {
+	if (!(await dbexistsTagTypeByCode(db, code))) {
 		throw new NotFoundError('tag type does not exist');
 	}
 
-	return await dbupdateTagTypeByCode(code, v);
+	return await dbupdateTagTypeByCode(db, code, v);
 }
 
-export async function deleteTagTypeByCode(code: string, a?: AccessToken): Promise<void> {
+export async function deleteTagTypeByCode(db: DB, code: string, a?: AccessToken): Promise<void> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to delete tag type');
 	}
 
-	if (!(await dbdeleteTagTypeByCode(code))) {
+	if (!(await dbdeleteTagTypeByCode(db, code))) {
 		throw new NotFoundError('tag type does not exist');
 	}
 }
 
-export async function listTagType(params: ParTagType): Promise<TagType[]> {
-	return await selectTagType(params);
+export async function listTagType(db: DB, params: ParTagType): Promise<TagType[]> {
+	return await selectTagType(db, params);
 }
 
-export async function countTagType(params: ParTagType): Promise<number> {
-	return await dbcountTagType(params);
+export async function countTagType(db: DB, params: ParTagType): Promise<number> {
+	return await dbcountTagType(db, params);
 }
 
-export async function addTag(v: NewTag, a?: AccessToken): Promise<Tag> {
+export async function addTag(db: DB, v: NewTag, a?: AccessToken): Promise<Tag> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to add tag');
 	}
 
-	return await insertTag(v);
+	return await insertTag(db, v);
 }
 
-export async function getTagBySID(sid: TagSID): Promise<Tag> {
-	const r = await selectTagBySID(sid);
+export async function getTagBySID(db: DB, sid: TagSID): Promise<Tag> {
+	const r = await selectTagBySID(db, sid);
 
 	if (!r) throw new NotFoundError('tag does not exist');
 
@@ -528,6 +555,7 @@ export async function getTagBySID(sid: TagSID): Promise<Tag> {
 }
 
 export async function updateTagBySID(
+	db: DB,
 	sid: TagSID,
 	v: SetTag,
 	a?: AccessToken
@@ -536,37 +564,37 @@ export async function updateTagBySID(
 		throw new PermissionError('missing admin permission to update tag');
 	}
 
-	if (!(await dbexistsTagBySID(sid))) {
+	if (!(await dbexistsTagBySID(db, sid))) {
 		throw new NotFoundError('tag does not exist');
 	}
 
-	return await dbupdateTagBySID(sid, v);
+	return await dbupdateTagBySID(db, sid, v);
 }
 
-export async function deleteTagBySID(sid: TagSID, a?: AccessToken): Promise<void> {
+export async function deleteTagBySID(db: DB, sid: TagSID, a?: AccessToken): Promise<void> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to delete tag');
 	}
 
-	if (!(await dbdeleteTagBySID(sid))) {
+	if (!(await dbdeleteTagBySID(db, sid))) {
 		throw new NotFoundError('tag does not exist');
 	}
 }
 
-export async function listTag(params: ParTag): Promise<Tag[]> {
-	return await selectTag(params);
+export async function listTag(db: DB, params: ParTag): Promise<Tag[]> {
+	return await selectTag(db, params);
 }
 
-export async function countTag(params: ParTag): Promise<number> {
-	return await dbcountTag(params);
+export async function countTag(db: DB, params: ParTag): Promise<number> {
+	return await dbcountTag(db, params);
 }
 
-export async function addComic(v: NewComic, a?: AccessToken): Promise<Comic> {
+export async function addComic(db: DB, v: NewComic, a?: AccessToken): Promise<Comic> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to add comic');
 	}
 
-	const r: Comic = await insertComic(v);
+	const r: Comic = await insertComic(db, v);
 
 	r.titles = [];
 	r.covers = [];
@@ -580,18 +608,18 @@ export async function addComic(v: NewComic, a?: AccessToken): Promise<Comic> {
 	return r;
 }
 
-export async function getComicByCode(code: string): Promise<Comic> {
-	const r: Comic | undefined = await selectComicByCode(code);
+export async function getComicByCode(db: DB, code: string): Promise<Comic> {
+	const r: Comic | undefined = await selectComicByCode(db, code);
 
 	if (r) {
-		r.titles = await listComicTitle({ comicIDs: [r.id] });
-		r.covers = await listComicCover({ comicIDs: [r.id] });
-		r.synopses = await listComicSynopsis({ comicIDs: [r.id] });
-		r.externals = await listComicExternal({ comicIDs: [r.id] });
-		r.categories = await listComicCategory({ comicIDs: [r.id] });
-		r.tags = await listComicTag({ comicIDs: [r.id] });
-		r.relations = await listComicRelation({ parentIDs: [r.id] });
-		r.chapters = await listComicChapter({ comicIDs: [r.id] });
+		r.titles = await listComicTitle(db, { comicIDs: [r.id] });
+		r.covers = await listComicCover(db, { comicIDs: [r.id] });
+		r.synopses = await listComicSynopsis(db, { comicIDs: [r.id] });
+		r.externals = await listComicExternal(db, { comicIDs: [r.id] });
+		r.categories = await listComicCategory(db, { comicIDs: [r.id] });
+		r.tags = await listComicTag(db, { comicIDs: [r.id] });
+		r.relations = await listComicRelation(db, { parentIDs: [r.id] });
+		r.chapters = await listComicChapter(db, { comicIDs: [r.id] });
 	} else {
 		throw new NotFoundError('comic does not exist');
 	}
@@ -600,6 +628,7 @@ export async function getComicByCode(code: string): Promise<Comic> {
 }
 
 export async function updateComicByCode(
+	db: DB,
 	code: string,
 	v: SetComic,
 	a?: AccessToken
@@ -608,38 +637,38 @@ export async function updateComicByCode(
 		throw new PermissionError('missing admin permission to update comic');
 	}
 
-	if (!(await dbexistsComicByCode(code))) {
+	if (!(await dbexistsComicByCode(db, code))) {
 		throw new NotFoundError('comic does not exist');
 	}
 
-	const r: Comic | undefined = await dbupdateComicByCode(code, v);
+	const r: Comic | undefined = await dbupdateComicByCode(db, code, v);
 
 	if (r) {
-		r.titles = await listComicTitle({ comicIDs: [r.id] });
-		r.covers = await listComicCover({ comicIDs: [r.id] });
-		r.synopses = await listComicSynopsis({ comicIDs: [r.id] });
-		r.externals = await listComicExternal({ comicIDs: [r.id] });
-		r.categories = await listComicCategory({ comicIDs: [r.id] });
-		r.tags = await listComicTag({ comicIDs: [r.id] });
-		r.relations = await listComicRelation({ parentIDs: [r.id] });
-		r.chapters = await listComicChapter({ comicIDs: [r.id] });
+		r.titles = await listComicTitle(db, { comicIDs: [r.id] });
+		r.covers = await listComicCover(db, { comicIDs: [r.id] });
+		r.synopses = await listComicSynopsis(db, { comicIDs: [r.id] });
+		r.externals = await listComicExternal(db, { comicIDs: [r.id] });
+		r.categories = await listComicCategory(db, { comicIDs: [r.id] });
+		r.tags = await listComicTag(db, { comicIDs: [r.id] });
+		r.relations = await listComicRelation(db, { parentIDs: [r.id] });
+		r.chapters = await listComicChapter(db, { comicIDs: [r.id] });
 	}
 
 	return r;
 }
 
-export async function deleteComicByCode(code: string, a?: AccessToken): Promise<void> {
+export async function deleteComicByCode(db: DB, code: string, a?: AccessToken): Promise<void> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to delete comic');
 	}
 
-	if (!(await dbdeleteComicByCode(code))) {
+	if (!(await dbdeleteComicByCode(db, code))) {
 		throw new NotFoundError('comic does not exist');
 	}
 }
 
-export async function listComic(params: ParComic): Promise<Comic[]> {
-	const r: Comic[] = await selectComic(params);
+export async function listComic(db: DB, params: ParComic): Promise<Comic[]> {
+	const r: Comic[] = await selectComic(db, params);
 
 	if (r.length > 0) {
 		r.forEach((r) => {
@@ -655,49 +684,49 @@ export async function listComic(params: ParComic): Promise<Comic[]> {
 
 		const comicIDs = r.map((comic) => comic.id);
 
-		const titles = await listComicTitle({ comicIDs });
+		const titles = await listComicTitle(db, { comicIDs });
 		titles.forEach((title) => {
 			r.forEach((r) => {
 				if (r.id == title.comicID) r.titles?.push(title);
 			});
 		});
-		const covers = await listComicCover({ comicIDs });
+		const covers = await listComicCover(db, { comicIDs });
 		covers.forEach((cover) => {
 			r.forEach((r) => {
 				if (r.id == cover.comicID) r.covers?.push(cover);
 			});
 		});
-		const synopses = await listComicSynopsis({ comicIDs });
+		const synopses = await listComicSynopsis(db, { comicIDs });
 		synopses.forEach((synopsis) => {
 			r.forEach((r) => {
 				if (r.id == synopsis.comicID) r.synopses?.push(synopsis);
 			});
 		});
-		const externals = await listComicExternal({ comicIDs });
+		const externals = await listComicExternal(db, { comicIDs });
 		externals.forEach((external) => {
 			r.forEach((r) => {
 				if (r.id == external.comicID) r.externals?.push(external);
 			});
 		});
-		const categories = await listComicCategory({ comicIDs });
+		const categories = await listComicCategory(db, { comicIDs });
 		categories.forEach((category) => {
 			r.forEach((r) => {
 				if (r.id == category.comicID) r.categories?.push(category);
 			});
 		});
-		const tags = await listComicTag({ comicIDs });
+		const tags = await listComicTag(db, { comicIDs });
 		tags.forEach((tag) => {
 			r.forEach((r) => {
 				if (r.id == tag.comicID) r.tags?.push(tag);
 			});
 		});
-		const relations = await listComicRelation({ parentIDs: comicIDs });
+		const relations = await listComicRelation(db, { parentIDs: comicIDs });
 		relations.forEach((relation) => {
 			r.forEach((r) => {
 				if (r.id == relation.parentID) r.relations?.push(relation);
 			});
 		});
-		const chapters = await listComicChapter({ comicIDs });
+		const chapters = await listComicChapter(db, { comicIDs });
 		chapters.forEach((chapter) => {
 			r.forEach((r) => {
 				if (r.id == chapter.comicID) r.chapters?.push(chapter);
@@ -708,20 +737,24 @@ export async function listComic(params: ParComic): Promise<Comic[]> {
 	return r;
 }
 
-export async function countComic(params: ParComic): Promise<number> {
-	return await dbcountComic(params);
+export async function countComic(db: DB, params: ParComic): Promise<number> {
+	return await dbcountComic(db, params);
 }
 
-export async function addComicTitle(v: NewComicTitle, a?: AccessToken): Promise<ComicTitle> {
+export async function addComicTitle(
+	db: DB,
+	v: NewComicTitle,
+	a?: AccessToken
+): Promise<ComicTitle> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to add comic title');
 	}
 
-	return await insertComicTitle(v);
+	return await insertComicTitle(db, v);
 }
 
-export async function getComicTitleBySID(sid: ComicGenericSID): Promise<ComicTitle> {
-	const r = await selectComicTitleBySID(sid);
+export async function getComicTitleBySID(db: DB, sid: ComicGenericSID): Promise<ComicTitle> {
+	const r = await selectComicTitleBySID(db, sid);
 
 	if (!r) throw new NotFoundError('comic title does not exist');
 
@@ -729,6 +762,7 @@ export async function getComicTitleBySID(sid: ComicGenericSID): Promise<ComicTit
 }
 
 export async function updateComicTitleBySID(
+	db: DB,
 	sid: ComicGenericSID,
 	v: SetComicTitle,
 	a?: AccessToken
@@ -737,41 +771,49 @@ export async function updateComicTitleBySID(
 		throw new PermissionError('missing admin permission to update comic title');
 	}
 
-	if (!(await dbexistsComicTitleBySID(sid))) {
+	if (!(await dbexistsComicTitleBySID(db, sid))) {
 		throw new NotFoundError('comic title does not exist');
 	}
 
-	return await dbupdateComicTitleBySID(sid, v);
+	return await dbupdateComicTitleBySID(db, sid, v);
 }
 
-export async function deleteComicTitleBySID(sid: ComicGenericSID, a?: AccessToken): Promise<void> {
+export async function deleteComicTitleBySID(
+	db: DB,
+	sid: ComicGenericSID,
+	a?: AccessToken
+): Promise<void> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to delete comic title');
 	}
 
-	if (!(await dbdeleteComicTitleBySID(sid))) {
+	if (!(await dbdeleteComicTitleBySID(db, sid))) {
 		throw new NotFoundError('comic title does not exist');
 	}
 }
 
-export async function listComicTitle(params: ParComicTitle): Promise<ComicTitle[]> {
-	return await selectComicTitle(params);
+export async function listComicTitle(db: DB, params: ParComicTitle): Promise<ComicTitle[]> {
+	return await selectComicTitle(db, params);
 }
 
-export async function countComicTitle(params: ParComicTitle): Promise<number> {
-	return await dbcountComicTitle(params);
+export async function countComicTitle(db: DB, params: ParComicTitle): Promise<number> {
+	return await dbcountComicTitle(db, params);
 }
 
-export async function addComicCover(v: NewComicCover, a?: AccessToken): Promise<ComicCover> {
+export async function addComicCover(
+	db: DB,
+	v: NewComicCover,
+	a?: AccessToken
+): Promise<ComicCover> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to add comic cover');
 	}
 
-	return await insertComicCover(v);
+	return await insertComicCover(db, v);
 }
 
-export async function getComicCoverBySID(sid: ComicGenericSID): Promise<ComicCover> {
-	const r = await selectComicCoverBySID(sid);
+export async function getComicCoverBySID(db: DB, sid: ComicGenericSID): Promise<ComicCover> {
+	const r = await selectComicCoverBySID(db, sid);
 
 	if (!r) throw new NotFoundError('comic cover does not exist');
 
@@ -779,6 +821,7 @@ export async function getComicCoverBySID(sid: ComicGenericSID): Promise<ComicCov
 }
 
 export async function updateComicCoverBySID(
+	db: DB,
 	sid: ComicGenericSID,
 	v: SetComicCover,
 	a?: AccessToken
@@ -787,32 +830,37 @@ export async function updateComicCoverBySID(
 		throw new PermissionError('missing admin permission to update comic cover');
 	}
 
-	if (!(await dbexistsComicCoverBySID(sid))) {
+	if (!(await dbexistsComicCoverBySID(db, sid))) {
 		throw new NotFoundError('comic cover does not exist');
 	}
 
-	return await dbupdateComicCoverBySID(sid, v);
+	return await dbupdateComicCoverBySID(db, sid, v);
 }
 
-export async function deleteComicCoverBySID(sid: ComicGenericSID, a?: AccessToken): Promise<void> {
+export async function deleteComicCoverBySID(
+	db: DB,
+	sid: ComicGenericSID,
+	a?: AccessToken
+): Promise<void> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to delete comic cover');
 	}
 
-	if (!(await dbdeleteComicCoverBySID(sid))) {
+	if (!(await dbdeleteComicCoverBySID(db, sid))) {
 		throw new NotFoundError('comic cover does not exist');
 	}
 }
 
-export async function listComicCover(params: ParComicCover): Promise<ComicCover[]> {
-	return await selectComicCover(params);
+export async function listComicCover(db: DB, params: ParComicCover): Promise<ComicCover[]> {
+	return await selectComicCover(db, params);
 }
 
-export async function countComicCover(params: ParComicCover): Promise<number> {
-	return await dbcountComicCover(params);
+export async function countComicCover(db: DB, params: ParComicCover): Promise<number> {
+	return await dbcountComicCover(db, params);
 }
 
 export async function addComicSynopsis(
+	db: DB,
 	v: NewComicSynopsis,
 	a?: AccessToken
 ): Promise<ComicSynopsis> {
@@ -820,11 +868,11 @@ export async function addComicSynopsis(
 		throw new PermissionError('missing admin permission to add comic synopsis');
 	}
 
-	return await insertComicSynopsis(v);
+	return await insertComicSynopsis(db, v);
 }
 
-export async function getComicSynopsisBySID(sid: ComicGenericSID): Promise<ComicSynopsis> {
-	const r = await selectComicSynopsisBySID(sid);
+export async function getComicSynopsisBySID(db: DB, sid: ComicGenericSID): Promise<ComicSynopsis> {
+	const r = await selectComicSynopsisBySID(db, sid);
 
 	if (!r) throw new NotFoundError('comic synopsis does not exist');
 
@@ -832,6 +880,7 @@ export async function getComicSynopsisBySID(sid: ComicGenericSID): Promise<Comic
 }
 
 export async function updateComicSynopsisBySID(
+	db: DB,
 	sid: ComicGenericSID,
 	v: SetComicSynopsis,
 	a?: AccessToken
@@ -840,14 +889,15 @@ export async function updateComicSynopsisBySID(
 		throw new PermissionError('missing admin permission to update comic synopsis');
 	}
 
-	if (!(await dbexistsComicSynopsisBySID(sid))) {
+	if (!(await dbexistsComicSynopsisBySID(db, sid))) {
 		throw new NotFoundError('comic synopsis does not exist');
 	}
 
-	return await dbupdateComicSynopsisBySID(sid, v);
+	return await dbupdateComicSynopsisBySID(db, sid, v);
 }
 
 export async function deleteComicSynopsisBySID(
+	db: DB,
 	sid: ComicGenericSID,
 	a?: AccessToken
 ): Promise<void> {
@@ -855,20 +905,24 @@ export async function deleteComicSynopsisBySID(
 		throw new PermissionError('missing admin permission to delete comic synopsis');
 	}
 
-	if (!(await dbdeleteComicSynopsisBySID(sid))) {
+	if (!(await dbdeleteComicSynopsisBySID(db, sid))) {
 		throw new NotFoundError('comic synopsis does not exist');
 	}
 }
 
-export async function listComicSynopsis(params: ParComicSynopsis): Promise<ComicSynopsis[]> {
-	return await selectComicSynopsis(params);
+export async function listComicSynopsis(
+	db: DB,
+	params: ParComicSynopsis
+): Promise<ComicSynopsis[]> {
+	return await selectComicSynopsis(db, params);
 }
 
-export async function countComicSynopsis(params: ParComicSynopsis): Promise<number> {
-	return await dbcountComicSynopsis(params);
+export async function countComicSynopsis(db: DB, params: ParComicSynopsis): Promise<number> {
+	return await dbcountComicSynopsis(db, params);
 }
 
 export async function addComicExternal(
+	db: DB,
 	v: NewComicExternal,
 	a?: AccessToken
 ): Promise<ComicExternal> {
@@ -876,11 +930,11 @@ export async function addComicExternal(
 		throw new PermissionError('missing admin permission to add comic external');
 	}
 
-	return await insertComicExternal(v);
+	return await insertComicExternal(db, v);
 }
 
-export async function getComicExternalBySID(sid: ComicGenericSID): Promise<ComicExternal> {
-	const r = await selectComicExternalBySID(sid);
+export async function getComicExternalBySID(db: DB, sid: ComicGenericSID): Promise<ComicExternal> {
+	const r = await selectComicExternalBySID(db, sid);
 
 	if (!r) throw new NotFoundError('comic external does not exist');
 
@@ -888,6 +942,7 @@ export async function getComicExternalBySID(sid: ComicGenericSID): Promise<Comic
 }
 
 export async function updateComicExternalBySID(
+	db: DB,
 	sid: ComicGenericSID,
 	v: SetComicExternal,
 	a?: AccessToken
@@ -896,14 +951,15 @@ export async function updateComicExternalBySID(
 		throw new PermissionError('missing admin permission to update comic external');
 	}
 
-	if (!(await dbexistsComicExternalBySID(sid))) {
+	if (!(await dbexistsComicExternalBySID(db, sid))) {
 		throw new NotFoundError('comic external does not exist');
 	}
 
-	return await dbupdateComicExternalBySID(sid, v);
+	return await dbupdateComicExternalBySID(db, sid, v);
 }
 
 export async function deleteComicExternalBySID(
+	db: DB,
 	sid: ComicGenericSID,
 	a?: AccessToken
 ): Promise<void> {
@@ -911,20 +967,24 @@ export async function deleteComicExternalBySID(
 		throw new PermissionError('missing admin permission to delete comic external');
 	}
 
-	if (!(await dbdeleteComicExternalBySID(sid))) {
+	if (!(await dbdeleteComicExternalBySID(db, sid))) {
 		throw new NotFoundError('comic external does not exist');
 	}
 }
 
-export async function listComicExternal(params: ParComicExternal): Promise<ComicExternal[]> {
-	return await selectComicExternal(params);
+export async function listComicExternal(
+	db: DB,
+	params: ParComicExternal
+): Promise<ComicExternal[]> {
+	return await selectComicExternal(db, params);
 }
 
-export async function countComicExternal(params: ParComicExternal): Promise<number> {
-	return await dbcountComicExternal(params);
+export async function countComicExternal(db: DB, params: ParComicExternal): Promise<number> {
+	return await dbcountComicExternal(db, params);
 }
 
 export async function addComicCategory(
+	db: DB,
 	v: NewComicCategory,
 	a?: AccessToken
 ): Promise<ComicCategory> {
@@ -932,11 +992,11 @@ export async function addComicCategory(
 		throw new PermissionError('missing admin permission to add comic category');
 	}
 
-	return await insertComicCategory(v);
+	return await insertComicCategory(db, v);
 }
 
-export async function getComicCategoryBySID(sid: ComicCategorySID): Promise<ComicCategory> {
-	const r = await selectComicCategoryBySID(sid);
+export async function getComicCategoryBySID(db: DB, sid: ComicCategorySID): Promise<ComicCategory> {
+	const r = await selectComicCategoryBySID(db, sid);
 
 	if (!r) throw new NotFoundError('comic category does not exist');
 
@@ -944,6 +1004,7 @@ export async function getComicCategoryBySID(sid: ComicCategorySID): Promise<Comi
 }
 
 export async function updateComicCategoryBySID(
+	db: DB,
 	sid: ComicCategorySID,
 	v: SetComicCategory,
 	a?: AccessToken
@@ -952,14 +1013,15 @@ export async function updateComicCategoryBySID(
 		throw new PermissionError('missing admin permission to update comic category');
 	}
 
-	if (!(await dbexistsComicCategoryBySID(sid))) {
+	if (!(await dbexistsComicCategoryBySID(db, sid))) {
 		throw new NotFoundError('comic category does not exist');
 	}
 
-	return await dbupdateComicCategoryBySID(sid, v);
+	return await dbupdateComicCategoryBySID(db, sid, v);
 }
 
 export async function deleteComicCategoryBySID(
+	db: DB,
 	sid: ComicCategorySID,
 	a?: AccessToken
 ): Promise<void> {
@@ -967,29 +1029,32 @@ export async function deleteComicCategoryBySID(
 		throw new PermissionError('missing admin permission to delete comic category');
 	}
 
-	if (!(await dbdeleteComicCategoryBySID(sid))) {
+	if (!(await dbdeleteComicCategoryBySID(db, sid))) {
 		throw new NotFoundError('comic category does not exist');
 	}
 }
 
-export async function listComicCategory(params: ParComicCategory): Promise<ComicCategory[]> {
-	return await selectComicCategory(params);
+export async function listComicCategory(
+	db: DB,
+	params: ParComicCategory
+): Promise<ComicCategory[]> {
+	return await selectComicCategory(db, params);
 }
 
-export async function countComicCategory(params: ParComicCategory): Promise<number> {
-	return await dbcountComicCategory(params);
+export async function countComicCategory(db: DB, params: ParComicCategory): Promise<number> {
+	return await dbcountComicCategory(db, params);
 }
 
-export async function addComicTag(v: NewComicTag, a?: AccessToken): Promise<ComicTag> {
+export async function addComicTag(db: DB, v: NewComicTag, a?: AccessToken): Promise<ComicTag> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to add comic tag');
 	}
 
-	return await insertComicTag(v);
+	return await insertComicTag(db, v);
 }
 
-export async function getComicTagBySID(sid: ComicTagSID): Promise<ComicTag> {
-	const r = await selectComicTagBySID(sid);
+export async function getComicTagBySID(db: DB, sid: ComicTagSID): Promise<ComicTag> {
+	const r = await selectComicTagBySID(db, sid);
 
 	if (!r) throw new NotFoundError('comic tag does not exist');
 
@@ -997,6 +1062,7 @@ export async function getComicTagBySID(sid: ComicTagSID): Promise<ComicTag> {
 }
 
 export async function updateComicTagBySID(
+	db: DB,
 	sid: ComicTagSID,
 	v: SetComicTag,
 	a?: AccessToken
@@ -1005,32 +1071,37 @@ export async function updateComicTagBySID(
 		throw new PermissionError('missing admin permission to update comic tag');
 	}
 
-	if (!(await dbexistsComicTagBySID(sid))) {
+	if (!(await dbexistsComicTagBySID(db, sid))) {
 		throw new NotFoundError('comic tag does not exist');
 	}
 
-	return await dbupdateComicTagBySID(sid, v);
+	return await dbupdateComicTagBySID(db, sid, v);
 }
 
-export async function deleteComicTagBySID(sid: ComicTagSID, a?: AccessToken): Promise<void> {
+export async function deleteComicTagBySID(
+	db: DB,
+	sid: ComicTagSID,
+	a?: AccessToken
+): Promise<void> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to delete comic tag');
 	}
 
-	if (!(await dbdeleteComicTagBySID(sid))) {
+	if (!(await dbdeleteComicTagBySID(db, sid))) {
 		throw new NotFoundError('comic tag does not exist');
 	}
 }
 
-export async function listComicTag(params: ParComicTag): Promise<ComicTag[]> {
-	return await selectComicTag(params);
+export async function listComicTag(db: DB, params: ParComicTag): Promise<ComicTag[]> {
+	return await selectComicTag(db, params);
 }
 
-export async function countComicTag(params: ParComicTag): Promise<number> {
-	return await dbcountComicTag(params);
+export async function countComicTag(db: DB, params: ParComicTag): Promise<number> {
+	return await dbcountComicTag(db, params);
 }
 
 export async function addComicRelationType(
+	db: DB,
 	v: NewComicRelationType,
 	a?: AccessToken
 ): Promise<ComicRelationType> {
@@ -1038,11 +1109,11 @@ export async function addComicRelationType(
 		throw new PermissionError('missing admin permission to add comic relation type');
 	}
 
-	return await insertComicRelationType(v);
+	return await insertComicRelationType(db, v);
 }
 
-export async function getComicRelationTypeByCode(code: string): Promise<ComicRelationType> {
-	const r = await selectComicRelationTypeByCode(code);
+export async function getComicRelationTypeByCode(db: DB, code: string): Promise<ComicRelationType> {
+	const r = await selectComicRelationTypeByCode(db, code);
 
 	if (!r) throw new NotFoundError('comic relation type does not exist');
 
@@ -1050,6 +1121,7 @@ export async function getComicRelationTypeByCode(code: string): Promise<ComicRel
 }
 
 export async function updateComicRelationTypeByCode(
+	db: DB,
 	code: string,
 	v: SetComicRelationType,
 	a?: AccessToken
@@ -1058,34 +1130,43 @@ export async function updateComicRelationTypeByCode(
 		throw new PermissionError('missing admin permission to update comic relation type');
 	}
 
-	if (!(await dbexistsComicRelationTypeByCode(code))) {
+	if (!(await dbexistsComicRelationTypeByCode(db, code))) {
 		throw new NotFoundError('comic relation type does not exist');
 	}
 
-	return await dbupdateComicRelationTypeByCode(code, v);
+	return await dbupdateComicRelationTypeByCode(db, code, v);
 }
 
-export async function deleteComicRelationTypeByCode(code: string, a?: AccessToken): Promise<void> {
+export async function deleteComicRelationTypeByCode(
+	db: DB,
+	code: string,
+	a?: AccessToken
+): Promise<void> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to delete comic relation type');
 	}
 
-	if (!(await dbdeleteComicRelationTypeByCode(code))) {
+	if (!(await dbdeleteComicRelationTypeByCode(db, code))) {
 		throw new NotFoundError('comic relation type does not exist');
 	}
 }
 
 export async function listComicRelationType(
+	db: DB,
 	params: ParComicRelationType
 ): Promise<ComicRelationType[]> {
-	return await selectComicRelationType(params);
+	return await selectComicRelationType(db, params);
 }
 
-export async function countComicRelationType(params: ParComicRelationType): Promise<number> {
-	return await dbcountComicRelationType(params);
+export async function countComicRelationType(
+	db: DB,
+	params: ParComicRelationType
+): Promise<number> {
+	return await dbcountComicRelationType(db, params);
 }
 
 export async function addComicRelation(
+	db: DB,
 	v: NewComicRelation,
 	a?: AccessToken
 ): Promise<ComicRelation> {
@@ -1093,11 +1174,11 @@ export async function addComicRelation(
 		throw new PermissionError('missing admin permission to add comic relation');
 	}
 
-	return await insertComicRelation(v);
+	return await insertComicRelation(db, v);
 }
 
-export async function getComicRelationBySID(sid: ComicRelationSID): Promise<ComicRelation> {
-	const r = await selectComicRelationBySID(sid);
+export async function getComicRelationBySID(db: DB, sid: ComicRelationSID): Promise<ComicRelation> {
+	const r = await selectComicRelationBySID(db, sid);
 
 	if (!r) throw new NotFoundError('comic relation does not exist');
 
@@ -1105,6 +1186,7 @@ export async function getComicRelationBySID(sid: ComicRelationSID): Promise<Comi
 }
 
 export async function updateComicRelationBySID(
+	db: DB,
 	sid: ComicRelationSID,
 	v: SetComicRelation,
 	a?: AccessToken
@@ -1113,14 +1195,15 @@ export async function updateComicRelationBySID(
 		throw new PermissionError('missing admin permission to update comic relation');
 	}
 
-	if (!(await dbexistsComicRelationBySID(sid))) {
+	if (!(await dbexistsComicRelationBySID(db, sid))) {
 		throw new NotFoundError('comic relation does not exist');
 	}
 
-	return await dbupdateComicRelationBySID(sid, v);
+	return await dbupdateComicRelationBySID(db, sid, v);
 }
 
 export async function deleteComicRelationBySID(
+	db: DB,
 	sid: ComicRelationSID,
 	a?: AccessToken
 ): Promise<void> {
@@ -1128,29 +1211,36 @@ export async function deleteComicRelationBySID(
 		throw new PermissionError('missing admin permission to delete comic relation');
 	}
 
-	if (!(await dbdeleteComicRelationBySID(sid))) {
+	if (!(await dbdeleteComicRelationBySID(db, sid))) {
 		throw new NotFoundError('comic relation does not exist');
 	}
 }
 
-export async function listComicRelation(params: ParComicRelation): Promise<ComicRelation[]> {
-	return await selectComicRelation(params);
+export async function listComicRelation(
+	db: DB,
+	params: ParComicRelation
+): Promise<ComicRelation[]> {
+	return await selectComicRelation(db, params);
 }
 
-export async function countComicRelation(params: ParComicRelation): Promise<number> {
-	return await dbcountComicRelation(params);
+export async function countComicRelation(db: DB, params: ParComicRelation): Promise<number> {
+	return await dbcountComicRelation(db, params);
 }
 
-export async function addComicChapter(v: NewComicChapter, a?: AccessToken): Promise<ComicChapter> {
+export async function addComicChapter(
+	db: DB,
+	v: NewComicChapter,
+	a?: AccessToken
+): Promise<ComicChapter> {
 	if (!a?.hasPermission(tokenPermissionKey('write'))) {
 		throw new PermissionError('missing admin permission to add comic chapter');
 	}
 
-	return await insertComicChapter(v);
+	return await insertComicChapter(db, v);
 }
 
-export async function getComicChapterBySID(sid: ComicChapterSID): Promise<ComicChapter> {
-	const r = await selectComicChapterBySID(sid);
+export async function getComicChapterBySID(db: DB, sid: ComicChapterSID): Promise<ComicChapter> {
+	const r = await selectComicChapterBySID(db, sid);
 
 	if (!r) throw new NotFoundError('comic chapter does not exist');
 
@@ -1158,6 +1248,7 @@ export async function getComicChapterBySID(sid: ComicChapterSID): Promise<ComicC
 }
 
 export async function updateComicChapterBySID(
+	db: DB,
 	sid: ComicChapterSID,
 	v: SetComicChapter,
 	a?: AccessToken
@@ -1166,14 +1257,15 @@ export async function updateComicChapterBySID(
 		throw new PermissionError('missing admin permission to update comic chapter');
 	}
 
-	if (!(await dbexistsComicChapterBySID(sid))) {
+	if (!(await dbexistsComicChapterBySID(db, sid))) {
 		throw new NotFoundError('comic chapter does not exist');
 	}
 
-	return await dbupdateComicChapterBySID(sid, v);
+	return await dbupdateComicChapterBySID(db, sid, v);
 }
 
 export async function deleteComicChapterBySID(
+	db: DB,
 	sid: ComicChapterSID,
 	a?: AccessToken
 ): Promise<void> {
@@ -1181,15 +1273,15 @@ export async function deleteComicChapterBySID(
 		throw new PermissionError('missing admin permission to delete comic chapter');
 	}
 
-	if (!(await dbdeleteComicChapterBySID(sid))) {
+	if (!(await dbdeleteComicChapterBySID(db, sid))) {
 		throw new NotFoundError('comic chapter does not exist');
 	}
 }
 
-export async function listComicChapter(params: ParComicChapter): Promise<ComicChapter[]> {
-	return await selectComicChapter(params);
+export async function listComicChapter(db: DB, params: ParComicChapter): Promise<ComicChapter[]> {
+	return await selectComicChapter(db, params);
 }
 
-export async function countComicChapter(params: ParComicChapter): Promise<number> {
-	return await dbcountComicChapter(params);
+export async function countComicChapter(db: DB, params: ParComicChapter): Promise<number> {
+	return await dbcountComicChapter(db, params);
 }
